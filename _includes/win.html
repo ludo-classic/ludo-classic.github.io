@@ -1,0 +1,17 @@
+<style>
+  #win-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 9998; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  #win-overlay.active { display: flex; }
+  .win-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(1rem, 5vw, 2.4rem); color: var(--gold); text-align: center; text-shadow: 0 0 40px rgba(201,168,76,.6); letter-spacing: 4px; animation: glow 2s ease-in-out infinite alternate; }
+  @keyframes glow { 0% { text-shadow: 0 0 20px rgba(201,168,76,.4); } 100% { text-shadow: 0 0 60px rgba(201,168,76,1), 0 0 20px #fff5; } }
+  .win-emoji { font-size: 80px; animation: bounce .6s ease-in-out infinite alternate; }
+  @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-14px); } }
+  .win-sub { color: var(--gold2); font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; }
+  .win-back-btn { margin-top: 10px; padding: 13px 32px; border: none; border-radius: 10px; background: linear-gradient(135deg, #a07828, var(--gold)); color: #0d1117; font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; }
+</style>
+
+<div id="win-overlay">
+  <div class="win-emoji">🏆</div>
+  <div class="win-title" id="win-title">PLAYER WINS!</div>
+  <div class="win-sub">Congratulations!</div>
+  <button class="win-back-btn" onclick="exitToLobby()">Back to Lobby</button>
+</div>
