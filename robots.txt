@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ludo-classic.github.io/sitemap.xml
