@@ -267,6 +267,8 @@ body{background:var(--bg);min-height:100vh;display:flex;flex-direction:column;al
   </div>
 </div>
 
+{% include footer.html %}
+
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import{getDatabase,ref,set,get,update,onValue,remove,onDisconnect}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -953,31 +955,4 @@ try{
     setupPresence();subscribeToRoom(roomCode);
   }else{window.showScreen('lobby-screen');}
 }catch(e){window.showScreen('lobby-screen');}
-</script>
-
-{% include footer.html %}
-
-<script>
-  window.selectedMode = '1v1'; 
-  window.switchTab = function(tab) {
-    ['create', 'join'].forEach(t => {
-      document.getElementById('tab-' + t + '-btn').classList.toggle('active', t === tab);
-      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
-    });
-  };
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      window.selectedMode = btn.dataset.mode;
-    });
-  });
-  window.addEventListener('DOMContentLoaded', () => {
-    const urlCode = new URLSearchParams(location.search).get('id');
-    if (urlCode) {
-      window.switchTab('join');
-      const joinInput = document.getElementById('join-code');
-      if (joinInput) joinInput.value = urlCode.toUpperCase();
-    }
-  });
 </script>
