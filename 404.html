@@ -13,38 +13,21 @@ description: "Oops! The page you are looking for doesn't exist."
     justify-content: center;
     padding: 20px;
     text-align: center;
+    background: #0d1117;
   }
-  .error-card {
-    background: #111827; /* --pb */
-    border: 1px solid #1f2d3d; /* --pbr */
-    border-radius: 18px;
-    padding: 40px;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 24px 56px rgba(0,0,0,.7);
-  }
-  .err-title {
-    font-family: 'Cinzel Decorative', serif;
-    font-size: 3rem;
-    color: #c9a84c; /* --gold */
-    text-shadow: 0 0 20px rgba(201,168,76,.3);
-    margin-bottom: 10px;
-  }
-  .err-sub {
+  .err-msg {
     color: #4a6080;
-    font-size: 0.9rem;
-    letter-spacing: 2px;
+    font-size: 1.1rem;
+    letter-spacing: 3px;
     text-transform: uppercase;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
   }
   .err-btn {
-    width: 100%;
-    padding: 14px;
+    padding: 14px 40px;
     border: none;
     border-radius: 9px;
     background: linear-gradient(135deg, #a07828, #c9a84c);
     color: #0d1117;
-    font-family: 'Rajdhani', sans-serif;
     font-size: 1rem;
     font-weight: 700;
     letter-spacing: 2px;
@@ -60,15 +43,13 @@ description: "Oops! The page you are looking for doesn't exist."
 </style>
 
 <div class="error-container">
-  <div class="error-card">
-    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js" type="module"></script>
-    <dotlottie-wc src="https://lottie.host/1f40ef9f-360f-4ae2-b18e-b204b9167bb2/V4UuTjVSmt.lottie" style="width: 150px; height: 150px; margin: 0 auto 20px;" speed="1" autoplay loop></dotlottie-wc>
-    
-    <h1 class="err-title">404</h1>
-    <p class="err-sub">Oops! Page not found.</p>
+  <!-- Lottie animation mein 404 included hai -->
+  <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js" type="module"></script>
+  <dotlottie-wc src="https://lottie.host/1f40ef9f-360f-4ae2-b18e-b204b9167bb2/V4UuTjVSmt.lottie" style="width: 250px; height: 250px; margin-bottom: 10px;" speed="1" autoplay loop></dotlottie-wc>
+  
+  <p class="err-msg">Oops! Page not found.</p>
 
-    <a href="{{ '/' | relative_url }}" class="err-btn">
-      Go to Home
-    </a>
-  </div>
+  <a href="{{ '/' | relative_url }}" class="err-btn">
+    Go to Home
+  </a>
 </div>
