@@ -7,7 +7,6 @@ lang: "en-IN"
 locale: "en_IN"
 
 image: "/assets/chat.png"
-keywords: "play ludo online, free ludo game, ludo with friends, ludo room code, online multiplayer ludo, board games india"
 
 plugins:
   - jekyll-sitemap
