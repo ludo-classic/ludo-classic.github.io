@@ -365,6 +365,13 @@ function stopBGM(){
   if(bgm){bgm.pause();bgm.currentTime=0;}
 }
 
+window.setBtnLoad=function(id,loading,label){
+  const b=document.getElementById(id);
+  if(!b)return;
+  b.disabled=loading;
+  b.innerHTML=loading?`<span class="spinner"></span>Please wait…`:label;
+};
+
 window.showScreen=function(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));
 };
@@ -433,9 +440,13 @@ function showEmojiToast(emoji,name){
 window.createRoom=async function(){
   const name=document.getElementById('create-name').value.trim();
   const rName=document.getElementById('room-name').value.trim();
-  const err=document.getElementById('create-error');err.textContent='';
-  if(!name){err.textContent='Please enter your name.';return;}
-  if(!rName){err.textContent='Please enter a room name.';return;}
+  const err=document.getElementById('create-error');
+  if(err) err.textContent='';
+  if(!name){if(err)err.textContent='Please enter your name.';return;}
+  if(!rName){if(err)err.textContent='Please enter a room name.';return;}
+  
+  window.setBtnLoad('create-btn',true,'Create Room');
+  
   myUid=Math.random().toString(36).slice(2,9)+Date.now().toString(36);
   myName=name;myColor=COLORS[0];roomCode=Math.random().toString(36).slice(2,6).toUpperCase();
   const ig={};
@@ -444,33 +455,41 @@ window.createRoom=async function(){
     await set(ref(db,'games/'+roomCode),{name:rName,mode:window.selectedMode,status:'waiting',createdAt:Date.now(),players:{[myUid]:{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true}},goties:ig,winners:[],currentTurn:COLORS[0]});
     saveSession();
     setupPresence();
+    window.setBtnLoad('create-btn',false,'Create Room');
     subscribeToRoom(roomCode);
   }catch(e){
-    err.textContent='Failed. Check connection.';
+    if(err)err.textContent='Failed. Check connection.';
+    window.setBtnLoad('create-btn',false,'Create Room');
   }
 };
 
 window.joinRoom=async function(){
   const name=document.getElementById('join-name').value.trim();
   const rCode=document.getElementById('join-code').value.trim().toUpperCase();
-  const err=document.getElementById('join-error');err.textContent='';
-  if(!name){err.textContent='Please enter your name.';return;}
-  if(!rCode){err.textContent='Please enter a room code.';return;}
+  const err=document.getElementById('join-error');
+  if(err) err.textContent='';
+  if(!name){if(err)err.textContent='Please enter your name.';return;}
+  if(!rCode){if(err)err.textContent='Please enter a room code.';return;}
+  
+  window.setBtnLoad('join-btn',true,'Join Room');
+
   try{
     const snap=await get(ref(db,'games/'+rCode));
     const room=snap.val();
-    if(!room){err.textContent='Room not found.';return;}
-    if(room.status!=='waiting'){err.textContent='Game already started.';return;}
+    if(!room){if(err)err.textContent='Room not found.';window.setBtnLoad('join-btn',false,'Join Room');return;}
+    if(room.status!=='waiting'){if(err)err.textContent='Game already started.';window.setBtnLoad('join-btn',false,'Join Room');return;}
     const players=Object.values(room.players||{});
-    if(players.length>=(MODE_SLOTS[room.mode]||2)){err.textContent='Room is full.';return;}
+    if(players.length>=(MODE_SLOTS[room.mode]||2)){if(err)err.textContent='Room is full.';window.setBtnLoad('join-btn',false,'Join Room');return;}
     myUid=Math.random().toString(36).slice(2,9)+Date.now().toString(36);
     myName=name;myColor=COLORS[players.length];roomCode=rCode;
     await set(ref(db,'games/'+rCode+'/players/'+myUid),{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true});
     saveSession();
     setupPresence();
+    window.setBtnLoad('join-btn',false,'Join Room');
     subscribeToRoom(rCode);
   }catch(e){
-    err.textContent='Failed. Check connection.';
+    if(err)err.textContent='Failed. Check connection.';
+    window.setBtnLoad('join-btn',false,'Join Room');
   }
 };
 
@@ -934,4 +953,31 @@ try{
     setupPresence();subscribeToRoom(roomCode);
   }else{window.showScreen('lobby-screen');}
 }catch(e){window.showScreen('lobby-screen');}
+</script>
+
+{% include footer.html %}
+
+<script>
+  window.selectedMode = '1v1'; 
+  window.switchTab = function(tab) {
+    ['create', 'join'].forEach(t => {
+      document.getElementById('tab-' + t + '-btn').classList.toggle('active', t === tab);
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    });
+  };
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      window.selectedMode = btn.dataset.mode;
+    });
+  });
+  window.addEventListener('DOMContentLoaded', () => {
+    const urlCode = new URLSearchParams(location.search).get('id');
+    if (urlCode) {
+      window.switchTab('join');
+      const joinInput = document.getElementById('join-code');
+      if (joinInput) joinInput.value = urlCode.toUpperCase();
+    }
+  });
 </script>
