@@ -1,0 +1,105 @@
+<style>
+  .ludo-footer {
+    background-color: #1a1a2e;
+    color: #ffffff;
+    border-top: 5px solid transparent;
+    border-image: linear-gradient(to right, #ff4d4d 25%, #2ecc71 25%, #2ecc71 50%, #f1c40f 50%, #f1c40f 75%, #3498db 75%) 1;
+  }
+  .ludo-footer-link {
+    display: block;
+    color: #e0e0e0;
+    text-decoration: none;
+    margin-bottom: 8px;
+    font-size: 15px;
+    transition: color 0.3s ease;
+  }
+  .ludo-footer-link:hover {
+    color: #f1c40f;
+    text-decoration: none;
+    transform: translateX(5px);
+  }
+  .ludo-social-icons a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    text-decoration: none;
+    margin: 0 8px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+  .ludo-social-icons a:hover {
+    background-color: #3498db; 
+    
+    color: #fff;
+    transform: translateY(-3px);
+  }
+  .footer-heading {
+    color: #2ecc71;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+</style>
+
+<footer class="ludo-footer mt-5 pt-5 pb-3">
+  <div class="container">
+    <div class="row">
+      
+      <!-- Game & General Links -->
+      <div class="col-md-4 mb-4">
+        <h5 class="footer-heading">🎲 Ludo Classic</h5>
+        <p class="small text-muted mb-3">Play India's favorite board game online with friends and family. Real-time multiplayer fun!</p>
+        <a href="/" class="ludo-footer-link">Play Now (Lobby)</a>
+        <a href="/rules.html" class="ludo-footer-link">How to Play / Rules</a>
+      </div>
+
+      <!-- Important Pages (AdSense Friendly) -->
+      <div class="col-md-4 mb-4">
+        <h5 class="footer-heading">Important Links</h5>
+        <div class="row">
+          <div class="col-6">
+            <a href="/about.html" class="ludo-footer-link">About Us</a>
+            <a href="/contact.html" class="ludo-footer-link">Contact Us</a>
+            <a href="/disclaimer.html" class="ludo-footer-link">Disclaimer</a>
+          </div>
+          <div class="col-6">
+            <a href="/privacy-policy.html" class="ludo-footer-link">Privacy Policy</a>
+            <a href="/terms.html" class="ludo-footer-link">Terms & Conditions</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Share -->
+      <div class="col-md-4 mb-4 d-flex flex-column align-items-md-end align-items-start">
+        <h5 class="footer-heading">Share with Friends</h5>
+        <div class="ludo-social-icons mt-2">
+          <a href="https://www.facebook.com/sharer/sharer.php?u={{ site.url }}" target="_blank" title="Share on Facebook">
+            <i class="fab fa-facebook-f"></i>
+          </a>
+          <a href="https://twitter.com/intent/tweet?url={{ site.url }}&text=Come play Ludo with me!" target="_blank" title="Share on X">
+            <i class="fab fa-x-twitter"></i>
+          </a>
+          <a href="https://api.whatsapp.com/send?text=Let's play Ludo Classic together! Join my room here: {{ site.url }}" target="_blank" title="Share on WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+          </a>
+          <a href="https://t.me/share/url?url={{ site.url }}&text=Let's play Ludo Classic!" target="_blank" title="Share on Telegram">
+            <i class="fab fa-telegram-plane"></i>
+          </a>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Copyright Section -->
+    <div class="text-center mt-4 border-top border-secondary pt-3 small text-muted">
+      &copy; <script>document.write(new Date().getFullYear())</script> Ludo Classic. All rights reserved.  
+      <br>
+      <span class="mt-2 d-inline-block">Made with ❤️ in Bharat</span>
+    </div>
+  </div>
+</footer>
