@@ -1,0 +1,15 @@
+title: "Ludo Classic – Multiplayer"
+description: "Play India's favorite board game online! Create private rooms to play free multiplayer Ludo with friends and family. Enjoy 1v1, 2v2, and Free-For-All modes."
+baseurl: "" 
+url: "https://ludo-classic.github.io"
+
+lang: "en-IN"
+locale: "en_IN"
+
+image: "/assets/ludo.png"
+
+keywords: "play ludo online, free ludo game, ludo with friends, ludo room code, online multiplayer ludo, board games india"
+
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag
