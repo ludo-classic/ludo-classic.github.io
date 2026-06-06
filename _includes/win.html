@@ -1,24 +1,25 @@
 <style>
-  #win-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 9998; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  #win-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.92); z-index: 9998; flex-direction: column; align-items: center; justify-content: center; gap: 16px; backdrop-filter: blur(4px); }
   #win-overlay.active { display: flex; }
-  .win-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(1rem, 5vw, 2.4rem); color: var(--gold); text-align: center; text-shadow: 0 0 40px rgba(201,168,76,.6); letter-spacing: 4px; animation: glow 2s ease-in-out infinite alternate; }
-  @keyframes glow { 0% { text-shadow: 0 0 20px rgba(201,168,76,.4); } 100% { text-shadow: 0 0 60px rgba(201,168,76,1), 0 0 20px #fff5; } }
+  .win-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(1rem, 5vw, 2.4rem); color: var(--gold); text-align: center; text-shadow: 0 0 20px rgba(154,123,44,.2); letter-spacing: 4px; animation: glow 2s ease-in-out infinite alternate; }
+  @keyframes glow { 0% { text-shadow: 0 0 10px rgba(154,123,44,.2); } 100% { text-shadow: 0 0 30px rgba(154,123,44,.6), 0 0 10px rgba(154,123,44,.3); } }
   .win-emoji { font-size: 80px; animation: bounce .6s ease-in-out infinite alternate; }
   @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-14px); } }
-  .win-sub { color: var(--gold2); font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; }
-  .win-back-btn { margin-top: 10px; padding: 13px 32px; border: none; border-radius: 10px; background: linear-gradient(135deg, #a07828, var(--gold)); color: #0d1117; font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; }
+  .win-sub { color: var(--gold2); font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
+  .win-back-btn { margin-top: 10px; padding: 13px 32px; border: none; border-radius: 10px; background: linear-gradient(135deg, #b89436, var(--gold)); color: #ffffff; font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 16px rgba(154,123,44,.2); transition: transform 0.2s; }
+  .win-back-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(154,123,44,.3); }
 
-  #exit-confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+  #exit-confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.92); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
   #exit-confirm-overlay.active { display: flex; }
-  .confirm-card { background: var(--pb); border: 1px solid var(--pbr); border-radius: 18px; padding: 28px; width: 100%; max-width: 340px; box-shadow: 0 24px 56px rgba(0,0,0,.9); text-align: center; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  .confirm-card { background: var(--pb); border: 1px solid var(--pbr); border-radius: 18px; padding: 28px; width: 100%; max-width: 340px; box-shadow: 0 12px 32px rgba(0,0,0,.08); text-align: center; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
   @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-  .confirm-title { color: #e57373; font-size: 1.5rem; font-weight: 700; margin-bottom: 12px; font-family: 'Cinzel Decorative', serif; }
-  .confirm-text { color: #4a7090; font-size: 1rem; margin-bottom: 24px; line-height: 1.4; }
+  .confirm-title { color: #dc2626; font-size: 1.5rem; font-weight: 700; margin-bottom: 12px; font-family: 'Cinzel Decorative', serif; }
+  .confirm-text { color: #475569; font-size: 1rem; margin-bottom: 24px; line-height: 1.4; font-weight: 500; }
   .confirm-btn-row { display: flex; gap: 12px; justify-content: center; }
-  .btn-cancel { flex: 1; background: rgba(255,255,255,.04); border: 1px solid var(--pbr); border-radius: 8px; color: var(--gold2); padding: 12px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; font-weight: 700; transition: all 0.2s; text-transform: uppercase; }
-  .btn-cancel:hover { border-color: var(--gold); background: rgba(255,255,255,.08); }
-  .btn-confirm-exit { flex: 1; background: transparent; border: 1px solid #c62828; border-radius: 8px; color: #e57373; padding: 12px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; font-weight: 700; transition: all 0.2s; text-transform: uppercase; }
-  .btn-confirm-exit:hover { background: rgba(198,40,40,.15); box-shadow: 0 4px 12px rgba(198,40,40,.2); }
+  .btn-cancel { flex: 1; background: rgba(0,0,0,.04); border: 1px solid var(--pbr); border-radius: 8px; color: var(--gold2); padding: 12px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; font-weight: 700; transition: all 0.2s; text-transform: uppercase; }
+  .btn-cancel:hover { border-color: var(--gold); background: rgba(0,0,0,.08); }
+  .btn-confirm-exit { flex: 1; background: transparent; border: 1px solid #dc2626; border-radius: 8px; color: #dc2626; padding: 12px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; font-weight: 700; transition: all 0.2s; text-transform: uppercase; }
+  .btn-confirm-exit:hover { background: rgba(220,38,38,.08); box-shadow: 0 4px 12px rgba(220,38,38,.15); }
 </style>
 
 <div id="win-overlay">
