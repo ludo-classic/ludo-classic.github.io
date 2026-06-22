@@ -290,6 +290,7 @@ function getSlots(mode){return MODE_SLOTS[mode]||2;}
 function slotColors(mode){return COLORS;}
 function getOnlinePlayers(players){return players.filter(p=>p&&p.isOnline!==false);}
 function getPlayerByColor(players,color){return players.find(p=>p.color===color);}
+function getSafePlayerName(p,fallback){const raw=(p&&(p.name||p.displayName||p.username||p.nick))||'';const name=String(raw).trim();if(name)return name;const uid=String(p?.uid||'').trim();return uid?uid.slice(0,8):fallback;}
 function getTeamColors(mode,color){return mode==='2v2'?(color==='red'||color==='yellow'?['red','yellow']:['green','blue']):[color];}
 function isSameTeam(mode,a,b){return mode==='2v2'&&getTeamColors(mode,a).includes(b);}
 function allFinished(goties,color){return(goties[color]||[]).length===4&&(goties[color]||[]).every(g=>g.pos===57);}
@@ -383,9 +384,9 @@ function getWinTitle(room,winnerColor){
   const pm={};Object.values(room.players||{}).forEach(p=>{pm[p.color]=p;});
   if(room.mode==='2v2'){
     const team=room.winnerTeam||getTeamColors(room.mode,winnerColor);
-    return team.map(c=>pm[c]?.name||c).join(' + ').toUpperCase()+' WINS!';
+    return team.map(c=>getSafePlayerName(pm[c],c)).join(' + ').toUpperCase()+' WINS!';
   }
-  return (pm[winnerColor]?.name||winnerColor).toUpperCase()+' WINS!';
+  return getSafePlayerName(pm[winnerColor],winnerColor).toUpperCase()+' WINS!';
 }
 
 window.showWin=function(winnerColor,room){
@@ -560,18 +561,17 @@ function renderWaiting(players,mode,rCode,room){
   const list=document.getElementById('players-list');
   list.innerHTML='';
   const maxSlots=getSlots(mode);
-  const onlinePlayers=getOnlinePlayers(players);
+  const onlinePlayers=getOnlinePlayers(players).filter(p=>p&&COLORS.includes(p.color));
   for(let i=0;i<maxSlots;i++){
-    const p=onlinePlayers[i];
+    const p=onlinePlayers[i]||null;
     const slot=document.createElement('div');
-    slot.className='player-slot'+(p?' filled':'');
+    slot.className='player-slot'+(p?' filled':'')+(p&&p.isOnline===false?' offline':'');
     const dot=document.createElement('div');
     dot.className='player-color-dot';
-    if(p)dot.style.background={red:'#c62828',green:'#2e7d32',yellow:'#f9a825',blue:'#1565c0'}[p.color];
-    else dot.style.background='rgba(0,0,0,0.08)';
+    dot.style.background=p?({red:'#c62828',green:'#2e7d32',yellow:'#f9a825',blue:'#1565c0'}[p.color]||'rgba(0,0,0,0.08)'):'rgba(0,0,0,0.08)';
     const nm=document.createElement('div');
     nm.className='player-name-w'+(p?'':' empty');
-    nm.textContent=p?(p.isOnline===false?p.name+' (Offline)':p.name):'Waiting for player...';
+    nm.textContent=p?(getSafePlayerName(p,'Player '+(i+1))+(p.isOnline===false?' (Offline)':'')):'Waiting for player...';
     slot.appendChild(dot);
     slot.appendChild(nm);
     if(p){
@@ -608,8 +608,8 @@ async function checkGameRules(room,players){
   const isHost=(room.hostUid||onlinePlayers[0]?.uid)===myUid;
   const elapsed=Date.now()-(room.turnStartTime||Date.now());
   const timeLeft=Math.max(0,20-Math.floor(elapsed/1000));
-  if(room.pendingMove&&room.pendingMove.color===room.currentTurn&&currentPlayer)setTurnText((currentPlayer.name||room.currentTurn)+' rolled '+room.pendingMove.roll+' — pick a goti ('+timeLeft+'s)');
-  else if(currentPlayer)setTurnText((currentPlayer.name||room.currentTurn)+'\'s Turn ('+timeLeft+'s)');
+  if(room.pendingMove&&room.pendingMove.color===room.currentTurn&&currentPlayer)setTurnText(getSafePlayerName(currentPlayer,room.currentTurn)+' rolled '+room.pendingMove.roll+' — pick a goti ('+timeLeft+'s)');
+  else if(currentPlayer)setTurnText(getSafePlayerName(currentPlayer,room.currentTurn)+'\'s Turn ('+timeLeft+'s)');
   let shouldPass=false;
   if(!currentPlayer||currentPlayer.isOnline===false)shouldPass=true;
   if(elapsed>20000)shouldPass=true;
@@ -635,7 +635,7 @@ function handleGameUpdate(players,room){
   else{waitingForMove=true;pendingRoll=room.pendingMove.roll||0;}
   if(window.gameLoop)clearInterval(window.gameLoop);
   window.gameLoop=setInterval(()=>checkGameRules(room,players),1000);
-  const playerMap={};players.forEach(p=>{playerMap[p.color]=p;});
+  const playerMap={};players.forEach(p=>{if(p&&p.color)playerMap[p.color]=p;});
   COLORS.forEach(color=>{
     const p=playerMap[color];
     const tag=document.getElementById('ptag-'+color),nm=document.getElementById('ptag-'+color+'-name');
@@ -643,7 +643,7 @@ function handleGameUpdate(players,room){
     if(!p){tag.classList.add('hidden');return;}
     tag.classList.remove('hidden');
     tag.classList.toggle('offline',p.isOnline===false);
-    nm.textContent=p.name+(p.uid===myUid?' (You)':'');
+    nm.textContent=getSafePlayerName(p,color)+(p.uid===myUid?' (You)':'');
   });
   const ev=room.lastEvent||null;
   const evKey=ev?ev.key:'';
@@ -722,7 +722,7 @@ function animateMove(color,idx,fromPos,toPos,goties,captured,onDone){
 
 function renderGame(players,room,playerMapIn){
   const playerMap=playerMapIn||{};
-  if(!playerMapIn)players.forEach(p=>{playerMap[p.color]=p;});
+  if(!playerMapIn)players.forEach(p=>{if(p&&p.color)playerMap[p.color]=p;});
   renderGoties(room.goties||{},playerMap);
   const activeRoll=room.pendingMove&&room.pendingMove.uid===myUid&&room.pendingMove.color===room.currentTurn?room.pendingMove.roll:0;
   applyTurn(room.currentTurn||players[0]?.color||'red',playerMap,room.goties||{},activeRoll,room);
@@ -732,8 +732,8 @@ function renderGame(players,room,playerMapIn){
 function updateWinHouse(winners,playerMap,mode){
   const el=document.getElementById('win-house-names');
   if(!winners||winners.length===0){el.textContent='';return;}
-  if(mode==='2v2')el.textContent=winners.map((team,i)=>(i+1)+'. '+team.map(c=>playerMap[c]?.name||c).join(' + ')).join('\n');
-  else el.textContent=winners.map((c,i)=>(i+1)+'. '+(playerMap[c]?.name||c)).join('\n');
+  if(mode==='2v2')el.textContent=winners.map((team,i)=>(i+1)+'. '+team.map(c=>getSafePlayerName(playerMap[c],c)).join(' + ')).join('\n');
+  else el.textContent=winners.map((c,i)=>(i+1)+'. '+getSafePlayerName(playerMap[c],c)).join('\n');
 }
 
 function renderGoties(goties,playerMap){
@@ -825,8 +825,8 @@ function applyTurn(color,playerMap,goties,roll,room){
   const pending=room?.pendingMove&&room.pendingMove.color===color;
   if(roll>0&&isMe)setTurnText('🎲 Rolled '+roll+' — pick a goti');
   else if(isMe)setTurnText('🎲 Your Turn — Roll Dice!');
-  else if(p&&pending)setTurnText((p.name||color)+' rolled '+room.pendingMove.roll+' — waiting for goti');
-  else if(p)setTurnText((p.name||color)+'\'s Turn');
+  else if(p&&pending)setTurnText(getSafePlayerName(p,color)+' rolled '+room.pendingMove.roll+' — waiting for goti');
+  else if(p)setTurnText(getSafePlayerName(p,color)+'\'s Turn');
   COLORS.forEach(c=>{const tag=document.getElementById('ptag-'+c);if(tag)tag.classList.toggle('active',c===color);});
   const bdw=document.getElementById('bottom-dice-wrap');
   if(bdw)bdw.classList.toggle('disabled',!(color===myColor&&isMe&&!waitingForMove&&!room?.pendingMove));
@@ -957,7 +957,7 @@ function setupBottomDice(){
       }
       pendingRoll=val;waitingForMove=true;
       await update(ref(db,'games/'+roomCode),{pendingMove:{uid:myUid,color:colorName,roll:val,key:evKey,at:Date.now()},turnStartTime:Date.now(),sixCounts,lastRoll:{uid:myUid,color:colorName,value:val,at:Date.now()}});
-      const playerMap={};players.forEach(p=>{playerMap[p.color]=p;});
+      const playerMap={};players.forEach(p=>{if(p&&p.color)playerMap[p.color]=p;});
       applyTurn(colorName,playerMap,goties,val,room2);
     },{once:true});
   });
