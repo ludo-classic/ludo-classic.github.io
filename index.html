@@ -1149,9 +1149,9 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
   }
 </style>
 
-<audio id="dice-snd" src="{{ '/assets/dice-roll.mp3' | relative_url }}" preload="auto"></audio>
-<audio id="win-snd" src="{{ '/assets/win.mp3' | relative_url }}" preload="auto"></audio>
-<audio id="bgm-snd" src="{{ '/assets/start-bgm.mp3' | relative_url }}" preload="auto" loop></audio>
+<audio id="dice-snd" src="/assets/dice-roll.mp3" preload="auto"></audio>
+<audio id="win-snd" src="/assets/win.mp3" preload="auto"></audio>
+<audio id="bgm-snd" src="/assets/start-bgm.mp3" preload="auto" loop></audio>
 
 <div id="floating-goti"></div>
 <div id="emoji-toast-wrap"></div>
@@ -1490,11 +1490,11 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
       const mode = room.mode || '1v1';
       const colors = slotColors(mode);
       const players = sortPlayers(Object.values(room.players || {}));
-      const stale = players.filter(p => p.isOnline === false && (Date.now() - (p.lastSeen || 0) > 10000));
+      const stale = players.filter(p => p.isOnline === false);
       for (const p of stale) { if (p.uid) await remove(ref(db, 'games/' + rCode + '/players/' + p.uid)); }
-      const remainingPlayers = players.filter(p => !stale.some(s => s.uid === p.uid));
-      if (remainingPlayers.length >= getSlots(mode)) { if (err) err.textContent = 'Room is full.'; window.setBtnLoad('join-btn', false, 'Join Room'); return; }
-      const used = new Set(remainingPlayers.map(p => p.color));
+      const fresh = players.filter(p => p.isOnline !== false);
+      if (fresh.length >= getSlots(mode)) { if (err) err.textContent = 'Room is full.'; window.setBtnLoad('join-btn', false, 'Join Room'); return; }
+      const used = new Set(fresh.map(p => p.color));
       const available = colors.filter(c => !used.has(c));
       const picked = COLORS.includes(window.selectedJoinColor) && available.includes(window.selectedJoinColor) ? window.selectedJoinColor : available[0];
       if (!picked) { if (err) err.textContent = 'No color available.'; window.setBtnLoad('join-btn', false, 'Join Room'); return; }
@@ -1570,9 +1570,9 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
     const list = document.getElementById('players-list');
     list.innerHTML = '';
     const maxSlots = getSlots(mode);
-    const allRoomPlayers = players.filter(p => p && COLORS.includes(p.color));
+    const onlinePlayers = getOnlinePlayers(players).filter(p => p && COLORS.includes(p.color));
     for (let i = 0; i < maxSlots; i++) {
-      const p = allRoomPlayers[i] || null;
+      const p = onlinePlayers[i] || null;
       const slot = document.createElement('div');
       slot.className = 'player-slot' + (p ? ' filled' : '') + (p && p.isOnline === false ? ' offline' : '');
       const dot = document.createElement('div');
@@ -1589,12 +1589,14 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
       }
       list.appendChild(slot);
     }
-
+    const used = new Set(onlinePlayers.map(p => p.color));
+    const changeColors = COLORS.filter(c => !used.has(c) || c === myColor);
+    if (window.renderWaitingAvailableColors) window.renderWaitingAvailableColors(changeColors, myColor);
     const wt = document.getElementById('waiting-text');
-    if (allRoomPlayers.length >= maxSlots) {
+    if (onlinePlayers.length >= maxSlots) {
       wt.textContent = 'All players joined! Starting…';
       if ((room?.hostUid || players[0]?.uid) === myUid) setTimeout(startGame, 1200);
-    } else wt.textContent = 'Waiting for players… (' + allRoomPlayers.length + '/' + maxSlots + ')';
+    } else wt.textContent = 'Waiting for players… (' + onlinePlayers.length + '/' + maxSlots + ')';
   }
 
   async function startGame() {
@@ -1665,7 +1667,7 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
           isAnimating = false;
           const saved = pendingGameState;
           pendingGameState = null;
-          if (saved) handleGameUpdate(saved.players, saved.room);
+          if (saved) renderGame(saved.players, saved.room, saved.playerMap);
           else renderGame(players, room, playerMap);
         });
         return;
@@ -2005,7 +2007,18 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
     }
   }
 
-
+  window.changeWaitingColor = async function (color) {
+    if (!roomCode || !myUid || !COLORS.includes(color) || color === myColor) return;
+    try {
+      const snap = await get(ref(db, 'games/' + roomCode));
+      const room = snap.val(); if (!room || room.status !== 'waiting') return;
+      const players = sortPlayers(Object.values(room.players || {}));
+      const used = new Set(getOnlinePlayers(players).filter(p => p.uid !== myUid).map(p => p.color));
+      if (used.has(color)) return;
+      await update(ref(db, 'games/' + roomCode + '/players/' + myUid), { color, lastSeen: Date.now() });
+      myColor = color; saveSession();
+    } catch (e) { }
+  };
 
   async function refreshJoinRoomPreview() {
     const codeEl = document.getElementById('join-code');
@@ -2019,9 +2032,9 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
       if (!room) { if (window.renderJoinAvailableColors) window.renderJoinAvailableColors([], null, 'Room not found'); return; }
       if (room.status !== 'waiting') { if (window.renderJoinAvailableColors) window.renderJoinAvailableColors([], null, 'Game already started'); return; }
       const players = sortPlayers(Object.values(room.players || {}));
-      const activePlayers = players.filter(p => p && p.color);
-      if (activePlayers.length >= getSlots(room.mode)) { if (window.renderJoinAvailableColors) window.renderJoinAvailableColors([], null, 'Room is full'); return; }
-      const used = new Set(activePlayers.map(p => p.color));
+      const fresh = getOnlinePlayers(players);
+      if (fresh.length >= getSlots(room.mode)) { if (window.renderJoinAvailableColors) window.renderJoinAvailableColors([], null, 'Room is full'); return; }
+      const used = new Set(fresh.map(p => p.color));
       const available = COLORS.filter(c => !used.has(c));
       if (window.renderJoinAvailableColors) window.renderJoinAvailableColors(available, available.includes(window.selectedJoinColor) ? window.selectedJoinColor : available[0], null);
       if (err) err.textContent = '';
