@@ -136,12 +136,13 @@
     if(tab==='join'&&window.refreshJoinRoomPreview)window.refreshJoinRoomPreview();
   };
 
-  function renderColorGrid(id, availableColors, selected, clickFn, emptyText) {
+  function renderColorGrid(id, availableColors, selected, clickFn, emptyText, showUnavailable = true) {
     const grid = document.getElementById(id);
     if(!grid) return;
     grid.innerHTML = '';
     lobbyColors.forEach(color => {
       const isAvailable = availableColors.includes(color);
+      if (!isAvailable && !showUnavailable) return;
       const btn = document.createElement('button');
       btn.type = 'button';
       if (isAvailable) {
@@ -187,13 +188,13 @@
     if(selected&&window.lastJoinAvailableColors.includes(selected))window.selectedJoinColor=selected;
     else if(window.lastJoinAvailableColors.length)window.selectedJoinColor=window.lastJoinAvailableColors[0];
     else window.selectedJoinColor='';
-    renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'Enter room code to choose color');
+    renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'Enter room code to choose color',false);
   };
 
   window.renderWaitingAvailableColors=function(colors,selected){
     renderColorGrid('waiting-color-grid',colors,selected,color=>{
       if(window.changeWaitingColor)window.changeWaitingColor(color);
-    },'All colors are taken');
+    },'All colors are taken',false);
   };
 
   document.querySelectorAll('.mode-btn').forEach(btn=>{
