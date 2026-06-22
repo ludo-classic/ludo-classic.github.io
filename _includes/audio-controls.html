@@ -122,6 +122,7 @@ window.isMicEnabled = false;
 let myPeer = null;
 let myLocalStream = null;
 const connectedPeers = {};
+const peerDataConnections = {};
 const remoteAudioElements = {};
 const localMutedPlayers = {};
 const voicePlayerCache = {};
@@ -182,6 +183,7 @@ window.initVoiceChat = async function(myUid) {
   if (myPeer) return;
   await ensureMicStream();
   myPeer = new Peer(myUid, { debug: 0 });
+  myPeer.on('connection', conn => handlePeerDataConnection(conn));
   myPeer.on('call', async call => {
     await ensureMicStream();
     try {
@@ -190,6 +192,56 @@ window.initVoiceChat = async function(myUid) {
     } catch (err) {}
     handleRemoteCall(call);
   });
+};
+
+function handlePeerDataConnection(conn) {
+  if (!conn) return null;
+  const targetUid = String(conn.peer || '').trim();
+  if (!targetUid) return conn;
+  peerDataConnections[targetUid] = conn;
+  conn.on('data', data => {
+    if (data && data.type === 'emoji' && window.receivePeerEmoji) {
+      window.receivePeerEmoji(data);
+    }
+  });
+  const cleanup = () => {
+    if (peerDataConnections[targetUid] === conn) delete peerDataConnections[targetUid];
+  };
+  conn.on('close', cleanup);
+  conn.on('error', cleanup);
+  return conn;
+}
+
+function ensurePeerDataConnection(targetUid) {
+  targetUid = String(targetUid || '').trim();
+  if (!targetUid || !myPeer || myPeer.destroyed) return null;
+  const existing = peerDataConnections[targetUid];
+  if (existing && existing.open) return existing;
+  if (existing) {
+    try { existing.close(); } catch (err) {}
+    delete peerDataConnections[targetUid];
+  }
+  try {
+    const conn = myPeer.connect(targetUid, { label: 'ludo-events', reliable: true });
+    return handlePeerDataConnection(conn);
+  } catch (err) {
+    return null;
+  }
+}
+
+window.sendPeerEmoji = function(payload) {
+  if (!payload || !myPeer || myPeer.destroyed) return 0;
+  let sent = 0;
+  Object.keys(voicePlayerCache).forEach(uid => {
+    const conn = ensurePeerDataConnection(uid);
+    if (!conn) return;
+    const sendNow = () => {
+      try { conn.send(payload); sent += 1; } catch (err) {}
+    };
+    if (conn.open) sendNow();
+    else if (conn.once) conn.once('open', sendNow);
+  });
+  return sent;
 };
 
 window.toggleMic = async function() {
@@ -260,6 +312,15 @@ window.syncVoicePeers = async function(players, myUid) {
   const onlinePlayers = (Array.isArray(players) ? players : []).filter(p => p && p.isOnline !== false && getVoiceUid(p) && getVoiceUid(p) !== myId);
   const activeUids = new Set(onlinePlayers.map(getVoiceUid));
   Object.keys(connectedPeers).forEach(uid => { if (!activeUids.has(uid)) cleanupRemote(uid); });
+  Object.keys(peerDataConnections).forEach(uid => {
+    if (!activeUids.has(uid)) {
+      try { peerDataConnections[uid].close(); } catch (err) {}
+      delete peerDataConnections[uid];
+    }
+  });
+  Object.keys(voicePlayerCache).forEach(uid => {
+    if (!activeUids.has(uid)) delete voicePlayerCache[uid];
+  });
   if (onlinePlayers.length === 0) {
     renderVoiceEmpty(listContainer);
     return;
@@ -267,6 +328,7 @@ window.syncVoicePeers = async function(players, myUid) {
   onlinePlayers.forEach(p => {
     const uid = getVoiceUid(p);
     voicePlayerCache[uid] = p;
+    ensurePeerDataConnection(uid);
     if (myPeer && myLocalStream && !connectedPeers[uid]) {
       try {
         const call = myPeer.call(uid, myLocalStream);
@@ -297,6 +359,10 @@ window.syncVoicePeers = async function(players, myUid) {
 
 window.closeVoiceChat = function() {
   Object.keys(connectedPeers).forEach(cleanupRemote);
+  Object.keys(peerDataConnections).forEach(uid => {
+    try { peerDataConnections[uid].close(); } catch (err) {}
+    delete peerDataConnections[uid];
+  });
   if (myPeer) {
     try { myPeer.destroy(); } catch (err) {}
   }
