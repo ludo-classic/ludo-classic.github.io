@@ -1,24 +1,59 @@
 <style>
-  .lobby-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(1.3rem, 4vw, 2.2rem); color: var(--gold); text-shadow: 0 0 30px rgba(154,123,44,.2), 0 2px 4px rgba(0,0,0,.1); letter-spacing: 3px; margin-top: 0; margin-bottom: 4px; text-align: center; }
-  .lobby-sub { color: #64748b; font-size: .72rem; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 32px; text-align: center; }
-  .lobby-card { background: var(--pb); border: 1px solid var(--pbr); border-radius: 18px; padding: 28px; width: 100%; max-width: 420px; box-shadow: 0 12px 32px rgba(0,0,0,.08); }
-  .tabs { display: flex; gap: 4px; background: rgba(0,0,0,.04); border-radius: 10px; padding: 4px; margin-bottom: 26px; }
-  .tab-btn { flex: 1; padding: 9px; border: none; border-radius: 7px; background: transparent; color: #64748b; font-family: 'Rajdhani', sans-serif; font-size: .88rem; font-weight: 600; letter-spacing: 1px; cursor: pointer; transition: all .2s; text-transform: uppercase; }
-  .tab-btn.active { background: var(--gold); color: #ffffff; }
-  .tab-panel { display: none; flex-direction: column; gap: 14px; }
-  .tab-panel.active { display: flex; }
-  .tab-panel label { display: block; color: #475569; font-size: .7rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; font-weight: 600; }
-  .tab-panel input[type="text"] { width: 100%; background: rgba(0,0,0,.02); border: 1px solid var(--pbr); border-radius: 8px; color: var(--gold2); font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 600; padding: 10px 13px; letter-spacing: 1px; transition: border-color .2s; outline: none; }
-  .tab-panel input[type="text"]:focus { border-color: var(--gold); background: #ffffff; }
-  .tab-panel input[type="text"]::placeholder { color: #94a3b8; }
-  .mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-  .mode-btn { padding: 9px 5px; border: 1px solid var(--pbr); border-radius: 8px; background: transparent; color: #64748b; font-family: 'Rajdhani', sans-serif; font-size: .82rem; font-weight: 700; cursor: pointer; transition: all .2s; text-align: center; }
-  .mode-btn.selected { border-color: var(--gold); color: var(--gold); background: rgba(154,123,44,.08); }
-  .action-btn { width: 100%; padding: 12px; border: none; border-radius: 9px; background: linear-gradient(135deg, #b89436, var(--gold)); color: #ffffff; font-family: 'Rajdhani', sans-serif; font-size: .95rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all .2s; margin-top: 4px; }
-  .action-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(154,123,44,.25); }
-  .action-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-  .error-msg { color: #dc2626; font-size: .78rem; text-align: center; min-height: 18px; }
-  .divider { border: none; border-top: 1px solid var(--pbr); margin: 2px 0; }
+  .lobby-title{font-family:'Cinzel Decorative',serif;font-size:clamp(1.3rem,4vw,2.2rem);color:var(--gold);text-shadow:0 0 30px rgba(154,123,44,.2),0 2px 4px rgba(0,0,0,.1);letter-spacing:3px;margin-top:0;margin-bottom:4px;text-align:center;}
+  .lobby-sub{color:#64748b;font-size:.72rem;letter-spacing:5px;text-transform:uppercase;margin-bottom:32px;text-align:center;}
+  .lobby-card{background:var(--pb);border:1px solid var(--pbr);border-radius:18px;padding:28px;width:100%;max-width:420px;box-shadow:0 12px 32px rgba(0,0,0,.08);}
+  .tabs{display:flex;gap:4px;background:rgba(0,0,0,.04);border-radius:10px;padding:4px;margin-bottom:26px;}
+  .tab-btn{flex:1;padding:9px;border:none;border-radius:7px;background:transparent;color:#64748b;font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:600;letter-spacing:1px;cursor:pointer;transition:all .2s;text-transform:uppercase;}
+  .tab-btn.active{background:var(--gold);color:#ffffff;}
+  .tab-panel{display:none;flex-direction:column;gap:14px;}
+  .tab-panel.active{display:flex;}
+  .tab-panel label{display:block;color:#475569;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;font-weight:600;}
+  .tab-panel input[type="text"]{width:100%;background:rgba(0,0,0,.02);border:1px solid var(--pbr);border-radius:8px;color:var(--gold2);font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;padding:10px 13px;letter-spacing:1px;transition:border-color .2s;outline:none;}
+  .tab-panel input[type="text"]:focus{border-color:var(--gold);background:#ffffff;}
+  .tab-panel input[type="text"]::placeholder{color:#94a3b8;}
+  .mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  .mode-btn{padding:9px 5px;border:1px solid var(--pbr);border-radius:8px;background:transparent;color:#64748b;font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s;text-align:center;}
+  .mode-btn.selected{border-color:var(--gold);color:var(--gold);background:rgba(154,123,44,.08);}
+  .color-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+  .color-btn{border:1px solid var(--pbr);background:transparent;border-radius:9px;padding:9px 5px;font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .2s;color:#64748b;display:flex;align-items:center;justify-content:center;gap:5px;}
+  .color-btn::before{content:'';width:12px;height:12px;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.25);}
+  .color-btn.red::before{background:#c62828;}
+  .color-btn.green::before{background:#2e7d32;}
+  .color-btn.yellow::before{background:#f9a825;}
+  .color-btn.blue::before{background:#1565c0;}
+  .color-btn.selected{border-color:var(--gold);background:rgba(154,123,44,.08);color:var(--gold);}
+  .color-empty{font-size:.76rem;color:#94a3b8;text-align:center;padding:9px;border:1px dashed var(--pbr);border-radius:9px;}
+  .action-btn{width:100%;padding:12px;border:none;border-radius:9px;background:linear-gradient(135deg,#b89436,var(--gold));color:#ffffff;font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:4px;}
+  .action-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(154,123,44,.25);}
+  .action-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  .error-msg{color:#dc2626;font-size:.78rem;text-align:center;min-height:18px;}
+  .divider{border:none;border-top:1px solid var(--pbr);margin:2px 0;}
+  .waiting-card{background:var(--pb);border:1px solid var(--pbr);border-radius:18px;padding:28px;width:100%;max-width:440px;box-shadow:0 12px 32px rgba(0,0,0,.08);}
+  .room-header{text-align:center;margin-bottom:22px;}
+  .room-label{color:#475569;font-size:.68rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+  .room-code{font-family:'Courier New',monospace;font-size:2rem;font-weight:700;color:var(--gold);letter-spacing:10px;cursor:pointer;}
+  .room-mode-badge{display:inline-block;margin-top:8px;padding:3px 12px;border-radius:20px;background:rgba(154,123,44,.1);border:1px solid rgba(154,123,44,.25);color:var(--gold);font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+  .players-list{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;}
+  .player-slot{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:10px;background:rgba(0,0,0,.03);border:1px solid var(--pbr);transition:border-color .3s;}
+  .player-slot.filled{border-color:rgba(154,123,44,.3);}
+  .player-slot.offline{opacity:.5;}
+  .player-color-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;}
+  .player-name-w{font-size:.95rem;font-weight:600;color:var(--gold2);flex:1;}
+  .player-name-w.empty{color:#94a3b8;font-style:italic;font-weight:400;}
+  .player-you-tag,.host-tag,.offline-tag{font-size:.62rem;letter-spacing:2px;font-weight:700;text-transform:uppercase;}
+  .player-you-tag{color:var(--gold);}
+  .host-tag{color:#64748b;}
+  .offline-tag{color:#e57373;margin-left:auto;}
+  .waiting-color-picker{margin-bottom:16px;}
+  .waiting-color-picker label{display:block;color:#475569;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-weight:700;text-align:center;}
+  .waiting-footer{text-align:center;}
+  .waiting-dots{color:#64748b;font-size:.78rem;letter-spacing:3px;animation:blink 1.4s ease-in-out infinite;}
+  @keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+  .btn-row{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;}
+  .ghost-btn{background:rgba(0,0,0,.04);border:1px solid var(--pbr);border-radius:7px;color:#334155;font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:7px 14px;cursor:pointer;transition:all .2s;}
+  .ghost-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .danger-btn{background:transparent;border:1px solid #cbd5e1;border-radius:7px;color:#dc2626;font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:7px 14px;cursor:pointer;transition:all .2s;}
+  .danger-btn:hover{border-color:#c62828;color:#b71c1c;}
 </style>
 
 <div id="lobby-screen" class="screen active">
@@ -40,6 +75,10 @@
           <button class="mode-btn" data-mode="ffa">Free For All</button>
         </div>
       </div>
+      <div>
+        <label>Choose Color</label>
+        <div class="color-grid" id="create-color-grid"></div>
+      </div>
       <hr class="divider">
       <div class="error-msg" id="create-error"></div>
       <button class="action-btn" id="create-btn" onclick="createRoom()">Create Room</button>
@@ -47,6 +86,10 @@
     <div class="tab-panel" id="tab-join">
       <div><label>Your Name</label><input type="text" id="join-name" placeholder="Enter your name" maxlength="16"></div>
       <div><label>Room Code</label><input type="text" id="join-code" placeholder="e.g. AB12" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-family:'Courier New',monospace;"></div>
+      <div>
+        <label>Available Colors</label>
+        <div class="color-grid" id="join-color-grid"><div class="color-empty">Enter room code to choose color</div></div>
+      </div>
       <hr class="divider">
       <div class="error-msg" id="join-error"></div>
       <button class="action-btn" id="join-btn" onclick="joinRoom()">Join Room</button>
@@ -54,30 +97,112 @@
   </div>
 </div>
 
-<script>
-  window.selectedMode = '1v1'; 
+<div id="waiting-screen" class="screen">
+  <div class="waiting-card">
+    <div class="room-header">
+      <div class="room-label">Room Code — click to copy</div>
+      <div class="room-code" id="display-room-code" onclick="copyCode()">XXXX</div>
+      <div class="room-mode-badge" id="display-mode">1v1</div>
+    </div>
+    <div class="players-list" id="players-list"></div>
+    <div class="waiting-color-picker" id="waiting-color-picker">
+      <label>Change Color</label>
+      <div class="color-grid" id="waiting-color-grid"></div>
+    </div>
+    <div class="waiting-footer">
+      <div class="waiting-dots" id="waiting-text">Waiting for players…</div>
+      <div class="btn-row">
+        <button class="ghost-btn" onclick="copyCode()">⧉ Copy Code</button>
+        <button class="ghost-btn" onclick="shareLink()">↗ Share Link</button>
+        <button class="danger-btn" onclick="leaveRoom()">Leave</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-  window.switchTab = function(tab) {
-    ['create', 'join'].forEach(t => {
-      document.getElementById('tab-' + t + '-btn').classList.toggle('active', t === tab);
-      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+<script>
+  window.selectedMode='1v1';
+  window.selectedColor='red';
+  window.selectedJoinColor='';
+  window.lastJoinAvailableColors=[];
+  const lobbyColors=['red','green','yellow','blue'];
+  const lobbyColorNames={red:'Red',green:'Green',yellow:'Yellow',blue:'Blue'};
+
+  window.switchTab=function(tab){
+    ['create','join'].forEach(t=>{
+      document.getElementById('tab-'+t+'-btn').classList.toggle('active',t===tab);
+      document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     });
+    if(tab==='join'&&window.refreshJoinRoomPreview)window.refreshJoinRoomPreview();
   };
 
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+  function renderColorGrid(id,colors,selected,clickFn,emptyText){
+    const grid=document.getElementById(id);
+    if(!grid)return;
+    grid.innerHTML='';
+    if(!colors||colors.length===0){
+      const empty=document.createElement('div');
+      empty.className='color-empty';
+      empty.textContent=emptyText||'No color available';
+      grid.appendChild(empty);
+      return;
+    }
+    colors.forEach(color=>{
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='color-btn '+color+(selected===color?' selected':'');
+      btn.textContent=lobbyColorNames[color]||color;
+      btn.onclick=()=>clickFn(color);
+      grid.appendChild(btn);
+    });
+  }
+
+  window.selectCreateColor=function(color){
+    if(!lobbyColors.includes(color))return;
+    window.selectedColor=color;
+    window.renderCreateColorChoices();
+  };
+
+  window.renderCreateColorChoices=function(){
+    renderColorGrid('create-color-grid',lobbyColors,window.selectedColor,window.selectCreateColor,'No color available');
+  };
+
+  window.selectJoinColor=function(color){
+    if(!window.lastJoinAvailableColors.includes(color))return;
+    window.selectedJoinColor=color;
+    window.renderJoinAvailableColors(window.lastJoinAvailableColors,color,null);
+  };
+
+  window.renderJoinAvailableColors=function(colors,selected,msg){
+    window.lastJoinAvailableColors=Array.isArray(colors)?colors:[];
+    if(selected&&window.lastJoinAvailableColors.includes(selected))window.selectedJoinColor=selected;
+    else if(window.lastJoinAvailableColors.length)window.selectedJoinColor=window.lastJoinAvailableColors[0];
+    else window.selectedJoinColor='';
+    renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'No color available');
+  };
+
+  window.renderWaitingAvailableColors=function(colors,selected){
+    renderColorGrid('waiting-color-grid',colors,selected,color=>{
+      if(window.changeWaitingColor)window.changeWaitingColor(color);
+    },'No color available');
+  };
+
+  document.querySelectorAll('.mode-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');
-      window.selectedMode = btn.dataset.mode;
+      window.selectedMode=btn.dataset.mode;
     });
   });
 
-  window.addEventListener('DOMContentLoaded', () => {
-    const urlCode = new URLSearchParams(location.search).get('id');
-    if (urlCode) {
+  window.addEventListener('DOMContentLoaded',()=>{
+    window.renderCreateColorChoices();
+    const urlCode=new URLSearchParams(location.search).get('id');
+    if(urlCode){
       window.switchTab('join');
-      const joinInput = document.getElementById('join-code');
-      if (joinInput) joinInput.value = urlCode.toUpperCase();
+      const joinInput=document.getElementById('join-code');
+      if(joinInput)joinInput.value=urlCode.toUpperCase();
+      if(window.refreshJoinRoomPreview)window.refreshJoinRoomPreview();
     }
   });
 </script>
