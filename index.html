@@ -398,6 +398,7 @@ window.showWin=function(winnerColor,room){
   document.getElementById('win-title').textContent=(pm[winnerColor]?.name||winnerColor).toUpperCase()+' WINS!';
   document.getElementById('win-overlay').classList.add('active');
   stopBGM();
+  if(typeof adBreak!=='undefined'){adBreak({type:'next',name:'game-over'});}
 };
 
 function subscribeToRoom(code){
@@ -497,6 +498,7 @@ window.joinRoom=async function(){
 
 window.leaveRoom=async function(){
   stopBGM();
+  if(typeof adBreak!=='undefined'){adBreak({type:'browse',name:'leave-room'});}
   try{
     const snap=await get(ref(db,'games/'+roomCode));
     const room=snap.val();
@@ -511,6 +513,7 @@ window.leaveRoom=async function(){
 window.exitToLobby=async function(){
   stopBGM();
   document.getElementById('win-overlay').classList.remove('active');
+  if(typeof adBreak!=='undefined'){adBreak({type:'browse',name:'exit-lobby'});}
   try{
     const snap=await get(ref(db,'games/'+roomCode));
     const room=snap.val();
@@ -575,23 +578,7 @@ function renderWaiting(players,mode,rCode){
 }
 
 async function startGame(){
-  // ================= MODIFICATION 2: GAME START HOTE HI AD BREAK TRIGGERS =================
-  if (typeof adBreak === 'function') {
-    // AdSense policy violation se bachne ke liye sound ko pehle pause kiya
-    const bgm = document.getElementById('bgm-snd');
-    if(bgm) bgm.pause();
-    
-    adBreak({
-      type: 'start',
-      name: 'start-game',
-      beforeAd: () => { console.log("Ad Starting..."); },
-      afterAd: () => { 
-        console.log("Ad Finished!"); 
-        if(bgmPlaying && bgm) bgm.play().catch(()=>{});
-      }
-    });
-  }
-  // =======================================================================================
+  if(typeof adBreak!=='undefined'){adBreak({type:'start',name:'game-start'});}
   await update(ref(db,'games/'+roomCode),{status:'playing',turnStartTime:Date.now()});
 }
 
@@ -662,19 +649,7 @@ function handleGameUpdate(players,room){
         if(waitingForMove&&pendingRoll>0){applyTurn(myColor,playerMap,room.goties||{},pendingRoll);}
       });
       return;
-    }else if(ev.type==='win'){
-      sndWin();
-      stopBGM();
-      
-      // ================= MODIFICATION 3: MATCH KHTM HOTE HI AD BREAK =================
-      if (typeof adBreak === 'function') {
-        adBreak({
-          type: 'next', // game complete hone par next type ad trigger hota hai
-          name: 'game-over-ad'
-        });
-      }
-      // ==============================================================================
-    }
+    }else if(ev.type==='win'){sndWin();stopBGM();}
   }else if(isAnimating){
     pendingGameState={players,room,playerMap};
     return;
@@ -777,7 +752,7 @@ function renderGoties(goties,playerMap){
       const colorKeys=Object.keys(byColor);
       colorKeys.forEach((color,ci)=>{
         const items=byColor[color];const off=OFFSETS[ci]||[0,0];
-        const el=document.createElement('div');el.className='goti '+COLOR_CFG[color].cls;el.dataset.color=color;el.dataset.idx=items[0].idx;el.style.left=(center+off[0])px;el.style.top=(center+off[1])+'px';el.style.zIndex=ci+2;
+        const el=document.createElement('div');el.className='goti '+COLOR_CFG[color].cls;el.dataset.color=color;el.dataset.idx=items[0].idx;el.style.left=(center+off[0])+'px';el.style.top=(center+off[1])+'px';el.style.zIndex=ci+2;
         if(items.length>1){const b=document.createElement('div');b.className='stack-badge';b.textContent=items.length;el.appendChild(b);}
         cell.appendChild(el);
       });
@@ -960,7 +935,7 @@ function buildBoard(){
     if(c===7&&r>=1&&r<=5)return'f-g';
     if(r===7&&c>=9&&c<=13)return'f-b';
     if(c===7&&r>=9&&r<=13)return'f-y';
-    const k=r+','+c;if(SS.has(k))return'safe';
+    const k=r+c;if(SS.has(k))return'safe';
     return'p';
   };
   COLORS.forEach(color=>{
@@ -987,5 +962,3 @@ try{
   }else{window.showScreen('lobby-screen');}
 }catch(e){window.showScreen('lobby-screen');}
 </script>
-
-{% include footer.html %}
