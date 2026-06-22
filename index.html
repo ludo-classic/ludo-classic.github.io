@@ -108,8 +108,7 @@ body{background:var(--bg);color:#1e293b;min-height:100vh;display:flex;flex-direc
 .token.selectable{animation:pulse-home .7s ease-in-out infinite alternate;cursor:pointer;}
 @keyframes pulse-home{0%{box-shadow:0 0 0 0 rgba(255,255,0,.9),0 3px 7px rgba(0,0,0,.4);}100%{box-shadow:0 0 0 8px rgba(255,255,0,0),0 3px 7px rgba(0,0,0,.4);}}
 .stack-badge{position:absolute;top:-6px;right:-6px;background:#fff;color:#111;border-radius:50%;width:13px;height:13px;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.3);}
-
-#floating-goti{position:fixed;width:var(--goti-size);height:var(--goti-size);border-radius:50%;border:2.5px solid rgba(255,255,255,.9);box-shadow:0 3px 12px rgba(0,0,0,.3),0 0 8px rgba(255,255,255,.5);pointer-events:none;z-index:9999;display:none;will-change:transform;transition:transform .14s linear;top:0;left:0;}
+#floating-goti{position:fixed;width:var(--goti-size);height:var(--goti-size);border-radius:50%;border:2.5px solid rgba(255,255,255,.9);box-shadow:0 3px 12px rgba(0,0,0,.3),0 0 8px rgba(255,255,255,.5);pointer-events:none;z-index:9999;display:none;transition:left .12s ease,top .12s ease;}
 
 .dice-scene{width:var(--ds);height:var(--ds);perspective:160px;cursor:pointer;}
 .dice-cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;transform:rotateX(-20deg) rotateY(30deg);}
@@ -283,7 +282,7 @@ const COLOR_CFG={
   red:{startIdx:0,homeCol:[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],cls:'goti-r',homeCells:[[1,1],[1,4],[4,1],[4,4]]},
   green:{startIdx:13,homeCol:[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],cls:'goti-g',homeCells:[[1,10],[1,13],[4,10],[4,13]]},
   yellow:{startIdx:26,homeCol:[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],cls:'goti-y',homeCells:[[10,10],[10,13],[13,10],[13,13]]},
-  blue:{startIdx:39,homeCol:[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],cls:'goti-b',homeCells:[[10,1],[10,4],[13,1],[13,4]]},
+  blue:{startIdx:39,homeCol:[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],cls:'goti-b',homeCells:[[10,1],[10,4],[13,1],[13,4]]}
 };
 
 const COLOR_GRAD={
@@ -297,19 +296,29 @@ const SAFE_CELLS=new Set(['6,12','8,2','2,6','12,8','6,1','8,13','1,8','13,6']);
 const COLORS=['red','green','yellow','blue'];
 const MODE_SLOTS={'1v1':2,'2v2':4,'ffa':4};
 const FACE_T={1:'rotateX(-20deg) rotateY(30deg)',2:'rotateX(-20deg) rotateY(-90deg)',3:'rotateX(90deg) rotateY(30deg)',4:'rotateX(-90deg) rotateY(30deg)',5:'rotateX(-20deg) rotateY(90deg)',6:'rotateX(-20deg) rotateY(210deg)'};
+const VALID_EMOJIS=new Set(['❤️','😂','🥺','💩','🤬','😭','😱','🤯','😎','🖕']);
 
 let myUid='',myName='',myColor='',roomCode='';
 let roomUnsub=null,boardBuilt=false;
 let waitingForMove=false,pendingRoll=0,lastEventKey='',isAnimating=false;
-let lastEmojiKey='';
-let consecutiveSixes=0;
-let bgmPlaying=false;
-let pendingGameState=null;
-let audioCtx=null;
+let lastEmojiKey='',bgmPlaying=false,pendingGameState=null,audioCtx=null;
 
-function generateId(){
-  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
+function sortPlayers(players){return players.sort((a,b)=>(a.joinedAt||0)-(b.joinedAt||0));}
+function getSlots(mode){return MODE_SLOTS[mode]||2;}
+function slotColors(mode){return COLORS.slice(0,getSlots(mode));}
+function getOnlinePlayers(players){return players.filter(p=>p&&p.isOnline!==false);}
+function getPlayerByColor(players,color){return players.find(p=>p.color===color);}
+function getTeamColors(mode,color){return mode==='2v2'?(color==='red'||color==='yellow'?['red','yellow']:['green','blue']):[color];}
+function isSameTeam(mode,a,b){return mode==='2v2'&&getTeamColors(mode,a).includes(b);}
+function allFinished(goties,color){return(goties[color]||[]).length===4&&(goties[color]||[]).every(g=>g.pos===57);}
+function teamFinished(goties,mode,color){return getTeamColors(mode,color).every(c=>allFinished(goties,c));}
+function isColorActive(goties,mode,color){return mode==='2v2'?!teamFinished(goties,mode,color)&&!allFinished(goties,color):!allFinished(goties,color);}
+function getActiveColors(players,goties,mode){return getOnlinePlayers(players).map(p=>p.color).filter(c=>slotColors(mode).includes(c)&&isColorActive(goties,mode,c));}
+function getNextTurn(currentColor,players,goties,mode){const cols=getActiveColors(players,goties,mode);if(cols.length===0)return currentColor;const idx=cols.indexOf(currentColor);return cols[(idx<0?0:idx+1)%cols.length];}
+function makeInitialGoties(){const ig={};COLORS.forEach(c=>{ig[c]=[{pos:-1},{pos:-1},{pos:-1},{pos:-1}];});return ig;}
+function makeSixCounts(){return{red:0,green:0,yellow:0,blue:0};}
+function normalizeEmoji(emoji){return VALID_EMOJIS.has(emoji)?emoji:'❤️';}
+function safeMode(){return MODE_SLOTS[window.selectedMode]?window.selectedMode:'1v1';}
 
 function getACtx(){
   if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
@@ -348,7 +357,6 @@ function sndDice(){
 }
 
 function sndMove(){playTone(380+Math.random()*120,0.07,'square',0.18);}
-
 function sndStar(){[523,659,784,1047].forEach((f,i)=>playTone(f,0.14,'sine',0.32,i*0.08));}
 
 function sndWin(){
@@ -371,35 +379,33 @@ function stopBGM(){
   if(bgm){bgm.pause();bgm.currentTime=0;}
 }
 
+function setTurnText(text){const el=document.getElementById('turn-label');if(el)el.textContent=text;}
+
 window.setBtnLoad=function(id,loading,label){
   const b=document.getElementById(id);
   if(!b)return;
   b.disabled=loading;
-  b.innerHTML=loading?`<span class="spinner"></span>Please wait…`:label;
+  if(loading){b.innerHTML='<span class="spinner"></span>Please wait…';}
+  else{b.textContent=label;}
 };
 
-window.showScreen=function(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));
-};
+window.showScreen=function(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));};
+window.openExitConfirm=function(){document.getElementById('exit-confirm-overlay').classList.add('active');};
+window.closeExitConfirm=function(){document.getElementById('exit-confirm-overlay').classList.remove('active');};
+window.confirmExit=async function(){window.closeExitConfirm();await window.exitToLobby();};
 
-window.openExitConfirm=function(){
-  document.getElementById('exit-confirm-overlay').classList.add('active');
-};
-
-window.closeExitConfirm=function(){
-  document.getElementById('exit-confirm-overlay').classList.remove('active');
-};
-
-window.confirmExit=async function(){
-  window.closeExitConfirm();
-  await window.exitToLobby();
-};
+function getWinTitle(room,winnerColor){
+  const pm={};Object.values(room.players||{}).forEach(p=>{pm[p.color]=p;});
+  if(room.mode==='2v2'){
+    const team=room.winnerTeam||getTeamColors(room.mode,winnerColor);
+    return team.map(c=>pm[c]?.name||c).join(' + ').toUpperCase()+' WINS!';
+  }
+  return (pm[winnerColor]?.name||winnerColor).toUpperCase()+' WINS!';
+}
 
 window.showWin=function(winnerColor,room){
   window.showScreen('game-screen');
-  const pm={};
-  Object.values(room.players||{}).forEach(p=>{pm[p.color]=p;});
-  document.getElementById('win-title').textContent=(pm[winnerColor]?.name||winnerColor).toUpperCase()+' WINS!';
+  document.getElementById('win-title').textContent=getWinTitle(room,winnerColor);
   document.getElementById('win-overlay').classList.add('active');
   stopBGM();
 };
@@ -409,18 +415,20 @@ function subscribeToRoom(code){
   roomUnsub=onValue(ref(db,'games/'+code),snap=>{
     const room=snap.val();
     if(!room){window.showScreen('lobby-screen');localStorage.removeItem('ludo_session');return;}
-    const players=Object.values(room.players||{}).sort((a,b)=>a.joinedAt-b.joinedAt);
+    const players=sortPlayers(Object.values(room.players||{}));
     const er=room.lastEmoji||null;
     if(er&&er.key!==lastEmojiKey){lastEmojiKey=er.key;showEmojiToast(er.emoji,er.name);}
-    if(room.status==='waiting')renderWaiting(players,room.mode,code);
+    if(room.status==='waiting')renderWaiting(players,room.mode,code,room);
     else if(room.status==='playing')handleGameUpdate(players,room);
     else if(room.status==='finished')window.showWin(room.winner,room);
   });
 }
 
-function setupPresence(){
+async function setupPresence(){
+  if(!roomCode||!myUid)return;
   const pRef=ref(db,'games/'+roomCode+'/players/'+myUid);
-  onDisconnect(pRef).update({isOnline:false});
+  try{await update(pRef,{isOnline:true,lastSeen:Date.now()});}catch(e){}
+  try{onDisconnect(pRef).update({isOnline:false,lastSeen:Date.now()});}catch(e){}
 }
 
 function saveSession(){localStorage.setItem('ludo_session',JSON.stringify({myUid,myName,myColor,roomCode}));}
@@ -429,39 +437,39 @@ window.sendEmoji=async function(emoji){
   if(!roomCode||!myUid)return;
   getACtx();
   const key=myUid+'-'+Date.now();
-  await update(ref(db,'games/'+roomCode),{lastEmoji:{emoji,name:myName,uid:myUid,key,at:Date.now()}});
+  await update(ref(db,'games/'+roomCode),{lastEmoji:{emoji:normalizeEmoji(emoji),name:myName,uid:myUid,key,at:Date.now()}});
 };
 
 function showEmojiToast(emoji,name){
-  const wrap=document.getElementById('emoji-toast-wrap');
+  const wrap=document.getElementById('emoji-toast-wrap');if(!wrap)return;
   const el=document.createElement('div');
+  const icon=document.createElement('div');
+  const nm=document.createElement('div');
   el.className='emoji-toast';
+  icon.className='emoji-toast-icon';
+  nm.className='emoji-toast-name';
+  icon.textContent=normalizeEmoji(emoji);
+  nm.textContent=name||'';
   el.style.left=(10+Math.random()*80)+'%';
   el.style.top=(15+Math.random()*65)+'%';
-  el.innerHTML=`<div class="emoji-toast-icon">${emoji}</div><div class="emoji-toast-name">${name}</div>`;
-  wrap.appendChild(el);
+  el.appendChild(icon);el.appendChild(nm);wrap.appendChild(el);
   setTimeout(()=>el.remove(),2500);
 }
 
 window.createRoom=async function(){
-  getACtx();
-  const name=document.getElementById('create-name').value.trim();
-  const rName=document.getElementById('room-name').value.trim();
+  const name=document.getElementById('create-name').value.trim().slice(0,24);
+  const rName=document.getElementById('room-name').value.trim().slice(0,40);
   const err=document.getElementById('create-error');
-  if(err) err.textContent='';
+  if(err)err.textContent='';
   if(!name){if(err)err.textContent='Please enter your name.';return;}
   if(!rName){if(err)err.textContent='Please enter a room name.';return;}
-  
   window.setBtnLoad('create-btn',true,'Create Room');
-  
-  myUid=generateId();
-  myName=name;myColor=COLORS[0];roomCode=Math.random().toString(36).slice(2,6).toUpperCase();
-  const ig={};
-  COLORS.forEach(c=>{ig[c]=[{pos:-1},{pos:-1},{pos:-1},{pos:-1}];});
+  myUid=Math.random().toString(36).slice(2,9)+Date.now().toString(36);
+  myName=name;myColor='red';roomCode=Math.random().toString(36).slice(2,6).toUpperCase();
   try{
-    await set(ref(db,'games/'+roomCode),{name:rName,mode:window.selectedMode,status:'waiting',createdAt:Date.now(),players:{[myUid]:{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true}},goties:ig,winners:[],currentTurn:COLORS[0]});
+    await set(ref(db,'games/'+roomCode),{name:rName,mode:safeMode(),status:'waiting',createdAt:Date.now(),hostUid:myUid,players:{[myUid]:{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true,lastSeen:Date.now()}},goties:makeInitialGoties(),winners:[],currentTurn:'red',turnStartTime:Date.now(),sixCounts:makeSixCounts(),pendingMove:null});
     saveSession();
-    setupPresence();
+    await setupPresence();
     window.setBtnLoad('create-btn',false,'Create Room');
     subscribeToRoom(roomCode);
   }catch(e){
@@ -471,28 +479,32 @@ window.createRoom=async function(){
 };
 
 window.joinRoom=async function(){
-  getACtx();
-  const name=document.getElementById('join-name').value.trim();
+  const name=document.getElementById('join-name').value.trim().slice(0,24);
   const rCode=document.getElementById('join-code').value.trim().toUpperCase();
   const err=document.getElementById('join-error');
-  if(err) err.textContent='';
+  if(err)err.textContent='';
   if(!name){if(err)err.textContent='Please enter your name.';return;}
   if(!rCode){if(err)err.textContent='Please enter a room code.';return;}
-  
   window.setBtnLoad('join-btn',true,'Join Room');
-
   try{
     const snap=await get(ref(db,'games/'+rCode));
     const room=snap.val();
     if(!room){if(err)err.textContent='Room not found.';window.setBtnLoad('join-btn',false,'Join Room');return;}
     if(room.status!=='waiting'){if(err)err.textContent='Game already started.';window.setBtnLoad('join-btn',false,'Join Room');return;}
-    const players=Object.values(room.players||{});
-    if(players.length>=(MODE_SLOTS[room.mode]||2)){if(err)err.textContent='Room is full.';window.setBtnLoad('join-btn',false,'Join Room');return;}
-    myUid=generateId();
-    myName=name;myColor=COLORS[players.length];roomCode=rCode;
-    await set(ref(db,'games/'+rCode+'/players/'+myUid),{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true});
+    const mode=room.mode||'1v1';
+    const colors=slotColors(mode);
+    const players=sortPlayers(Object.values(room.players||{}));
+    const stale=players.filter(p=>p.isOnline===false);
+    for(const p of stale){if(p.uid)await remove(ref(db,'games/'+rCode+'/players/'+p.uid));}
+    const fresh=players.filter(p=>p.isOnline!==false);
+    const used=new Set(fresh.map(p=>p.color));
+    const nextColor=colors.find(c=>!used.has(c));
+    if(!nextColor){if(err)err.textContent='Room is full.';window.setBtnLoad('join-btn',false,'Join Room');return;}
+    myUid=Math.random().toString(36).slice(2,9)+Date.now().toString(36);
+    myName=name;myColor=nextColor;roomCode=rCode;
+    await set(ref(db,'games/'+rCode+'/players/'+myUid),{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true,lastSeen:Date.now()});
     saveSession();
-    setupPresence();
+    await setupPresence();
     window.setBtnLoad('join-btn',false,'Join Room');
     subscribeToRoom(rCode);
   }catch(e){
@@ -506,8 +518,8 @@ window.leaveRoom=async function(){
   try{
     const snap=await get(ref(db,'games/'+roomCode));
     const room=snap.val();
-    const players=Object.values(room?.players||{}).sort((a,b)=>a.joinedAt-b.joinedAt);
-    if(players[0]?.uid===myUid)await remove(ref(db,'games/'+roomCode));
+    const players=sortPlayers(Object.values(room?.players||{}));
+    if((room?.hostUid||players[0]?.uid)===myUid)await remove(ref(db,'games/'+roomCode));
     else await remove(ref(db,'games/'+roomCode+'/players/'+myUid));
   }catch(e){}
   cleanup();
@@ -521,9 +533,9 @@ window.exitToLobby=async function(){
     const snap=await get(ref(db,'games/'+roomCode));
     const room=snap.val();
     if(room){
-      const players=Object.values(room.players||{}).sort((a,b)=>a.joinedAt-b.joinedAt);
-      if(players[0]?.uid===myUid)await remove(ref(db,'games/'+roomCode));
-      else await update(ref(db,'games/'+roomCode+'/players/'+myUid),{isOnline:false});
+      const players=sortPlayers(Object.values(room.players||{}));
+      if((room.hostUid||players[0]?.uid)===myUid)await remove(ref(db,'games/'+roomCode));
+      else await update(ref(db,'games/'+roomCode+'/players/'+myUid),{isOnline:false,lastSeen:Date.now()});
     }
   }catch(e){}
   cleanup();
@@ -535,14 +547,14 @@ function cleanup(){
   if(window.gameLoop){clearInterval(window.gameLoop);window.gameLoop=null;}
   stopBGM();
   localStorage.removeItem('ludo_session');
-  boardBuilt=false;waitingForMove=false;pendingRoll=0;lastEventKey='';isAnimating=false;lastEmojiKey='';consecutiveSixes=0;bgmPlaying=false;pendingGameState=null;
+  boardBuilt=false;waitingForMove=false;pendingRoll=0;lastEventKey='';isAnimating=false;lastEmojiKey='';bgmPlaying=false;pendingGameState=null;
   document.getElementById('board').querySelectorAll('.cell').forEach(c=>c.remove());
   const fg=document.getElementById('floating-goti');if(fg)fg.style.display='none';
   document.getElementById('emoji-toast-wrap').innerHTML='';
   const bdw=document.getElementById('bottom-dice-wrap');if(bdw)bdw.classList.add('disabled');
 }
 
-window.copyCode=function(){navigator.clipboard.writeText(roomCode).then(()=>{});};
+window.copyCode=function(){if(roomCode)navigator.clipboard.writeText(roomCode).then(()=>{});};
 
 window.shareLink=function(){
   const url=location.origin+location.pathname+'?id='+roomCode;
@@ -550,14 +562,14 @@ window.shareLink=function(){
   else navigator.clipboard.writeText(url).then(()=>{});
 };
 
-function renderWaiting(players,mode,rCode){
+function renderWaiting(players,mode,rCode,room){
   window.showScreen('waiting-screen');
   document.getElementById('display-room-code').textContent=rCode;
   document.getElementById('display-mode').textContent={'1v1':'1 vs 1','2v2':'2 vs 2','ffa':'Free For All'}[mode]||mode;
-  const slots=MODE_SLOTS[mode]||2;
+  const colors=slotColors(mode);
   const list=document.getElementById('players-list');list.innerHTML='';
-  for(let i=0;i<slots;i++){
-    const p=players[i],color=COLORS[i];
+  colors.forEach((color,i)=>{
+    const p=getPlayerByColor(players,color);
     const slot=document.createElement('div');
     slot.className='player-slot'+(p?' filled':'')+(p&&p.isOnline===false?' offline':'');
     const dot=document.createElement('div');dot.className='player-color-dot';
@@ -567,45 +579,46 @@ function renderWaiting(players,mode,rCode){
     slot.appendChild(dot);slot.appendChild(nm);
     if(p){
       if(p.uid===myUid){const y=document.createElement('span');y.className='player-you-tag';y.textContent='YOU';slot.appendChild(y);}
-      else if(i===0){const h=document.createElement('span');h.className='host-tag';h.textContent='HOST';slot.appendChild(h);}
+      if((room?.hostUid||players[0]?.uid)===p.uid){const h=document.createElement('span');h.className='host-tag';h.textContent='HOST';slot.appendChild(h);}
     }
     list.appendChild(slot);
-  }
-  const onlinePlayers=players.filter(p=>p.isOnline!==false);
+  });
+  const onlinePlayers=getOnlinePlayers(players).filter(p=>colors.includes(p.color));
   const wt=document.getElementById('waiting-text');
-  if(onlinePlayers.length>=slots){
+  if(onlinePlayers.length>=colors.length){
     wt.textContent='All players joined! Starting…';
-    if(players[0]?.uid===myUid)setTimeout(startGame,1500);
-  }
-  else wt.textContent='Waiting for players… ('+onlinePlayers.length+'/'+slots+')';
+    if((room?.hostUid||players[0]?.uid)===myUid)setTimeout(startGame,1200);
+  }else wt.textContent='Waiting for players… ('+onlinePlayers.length+'/'+colors.length+')';
 }
 
-async function startGame(){await update(ref(db,'games/'+roomCode),{status:'playing',turnStartTime:Date.now()});}
+async function startGame(){
+  const snap=await get(ref(db,'games/'+roomCode));
+  const room=snap.val();if(!room||room.status!=='waiting')return;
+  const players=sortPlayers(Object.values(room.players||{}));
+  const colors=slotColors(room.mode);
+  const online=getOnlinePlayers(players).filter(p=>colors.includes(p.color));
+  if(online.length<colors.length)return;
+  await update(ref(db,'games/'+roomCode),{status:'playing',currentTurn:colors[0],turnStartTime:Date.now(),pendingMove:null,sixCounts:room.sixCounts||makeSixCounts()});
+}
 
 async function checkGameRules(room,players){
   if(room.status!=='playing'||isAnimating)return;
-  const currentPlayer=players.find(p=>p.color===room.currentTurn);
-  const onlinePlayers=players.filter(p=>p.isOnline!==false);
-  if(onlinePlayers.length===0)return;
-  const isHost=onlinePlayers[0].uid===myUid;
-  let shouldPass=false;
-  if(currentPlayer&&currentPlayer.isOnline===false)shouldPass=true;
+  const goties=room.goties||{};
+  const currentPlayer=getPlayerByColor(players,room.currentTurn);
+  const onlinePlayers=getOnlinePlayers(players);
+  const isHost=(room.hostUid||onlinePlayers[0]?.uid)===myUid;
   const elapsed=Date.now()-(room.turnStartTime||Date.now());
   const timeLeft=Math.max(0,20-Math.floor(elapsed/1000));
-  const turnLabel=document.getElementById('turn-label');
-  if(turnLabel&&!turnLabel.innerHTML.includes('Rolled')&&currentPlayer){
-    turnLabel.innerHTML=`<span>${(currentPlayer.name||room.currentTurn).toUpperCase()}'s Turn</span> <span style="color:#e57373; font-weight:900;">(${timeLeft}s)</span>`;
-  }
+  if(room.pendingMove&&room.pendingMove.color===room.currentTurn&&currentPlayer)setTurnText((currentPlayer.name||room.currentTurn)+' rolled '+room.pendingMove.roll+' — pick a goti ('+timeLeft+'s)');
+  else if(currentPlayer)setTurnText((currentPlayer.name||room.currentTurn)+'\'s Turn ('+timeLeft+'s)');
+  let shouldPass=false;
+  if(!currentPlayer||currentPlayer.isOnline===false)shouldPass=true;
   if(elapsed>20000)shouldPass=true;
   if(isHost&&shouldPass&&!window.isPassingTurn){
     window.isPassingTurn=true;
-    const goties=room.goties||{};
-    const cols=onlinePlayers.map(p=>p.color).filter(c=>!allFinished(goties,c));
-    if(cols.length<=1){window.isPassingTurn=false;return;}
-    const currentIdx=cols.indexOf(room.currentTurn);
-    const nextTurn=cols[(currentIdx+1)%cols.length]||cols[0];
-    await update(ref(db,'games/'+roomCode),{currentTurn:nextTurn,turnStartTime:Date.now()});
-    setTimeout(()=>window.isPassingTurn=false,2000);
+    const nextTurn=getNextTurn(room.currentTurn,players,goties,room.mode);
+    await update(ref(db,'games/'+roomCode),{currentTurn:nextTurn,turnStartTime:Date.now(),pendingMove:null,sixCounts:{...(room.sixCounts||makeSixCounts()),[room.currentTurn]:0}});
+    setTimeout(()=>window.isPassingTurn=false,1500);
   }
 }
 
@@ -615,15 +628,13 @@ function handleGameUpdate(players,room){
   startBGM();
   document.getElementById('game-room-badge').textContent=roomCode;
   if(!boardBuilt){boardBuilt=true;buildBoard();setupBottomDice();}
+  const myPlayerData=room.players?.[myUid];
+  if(myPlayerData&&myPlayerData.color&&myPlayerData.color!==myColor){myColor=myPlayerData.color;saveSession();}
+  if(!room.pendingMove||room.pendingMove.uid!==myUid||room.pendingMove.color!==room.currentTurn){waitingForMove=false;pendingRoll=0;}
+  else{waitingForMove=true;pendingRoll=room.pendingMove.roll||0;}
   if(window.gameLoop)clearInterval(window.gameLoop);
   window.gameLoop=setInterval(()=>checkGameRules(room,players),1000);
-  const playerMap={};
-  players.forEach(p=>{playerMap[p.color]=p;});
-  const myPlayerData=room.players?.[myUid];
-  if(myPlayerData&&myPlayerData.color&&myPlayerData.color!==myColor){
-    myColor=myPlayerData.color;
-    saveSession();
-  }
+  const playerMap={};players.forEach(p=>{playerMap[p.color]=p;});
   COLORS.forEach(color=>{
     const p=playerMap[color];
     const tag=document.getElementById('ptag-'+color),nm=document.getElementById('ptag-'+color+'-name');
@@ -648,14 +659,10 @@ function handleGameUpdate(players,room){
         pendingGameState=null;
         if(saved)renderGame(saved.players,saved.room,saved.playerMap);
         else renderGame(players,room,playerMap);
-        if(waitingForMove&&pendingRoll>0)applyTurn(myColor,playerMap,room.goties||{},pendingRoll);
       });
       return;
     }else if(ev.type==='win'){sndWin();stopBGM();}
-  }else if(isAnimating){
-    pendingGameState={players,room,playerMap};
-    return;
-  }
+  }else if(isAnimating){pendingGameState={players,room,playerMap};return;}
   renderGame(players,room,playerMap);
 }
 
@@ -665,10 +672,7 @@ function triggerBottomDiceAnim(val){
   cube.classList.remove('spinning');
   void cube.offsetWidth;
   cube.classList.add('spinning');
-  cube.addEventListener('animationend',()=>{
-    cube.classList.remove('spinning');
-    cube.style.transform=FACE_T[val];
-  },{once:true});
+  cube.addEventListener('animationend',()=>{cube.classList.remove('spinning');cube.style.transform=FACE_T[val];},{once:true});
 }
 
 function getCellCenter(r,c){
@@ -681,13 +685,12 @@ function animateMove(color,idx,fromPos,toPos,goties,captured,onDone){
   if(document.hidden){if(captured)sndStar();onDone();return;}
   const cfg=COLOR_CFG[color];
   const fg=document.getElementById('floating-goti');
-  fg.style.background=COLOR_GRAD[color];
-  fg.style.display='block';
-  fg.style.transform='translate(-999px,-999px)';
+  fg.style.background=COLOR_GRAD[color];fg.style.display='block';
   const steps=[];
   if(fromPos===-1){const hc=cfg.homeCells[idx];steps.push({r:hc[0],c:hc[1],isHome:true});}
   const start=fromPos===-1?0:fromPos+1;
   for(let p=start;p<=toPos&&p<=57;p++){
+    if(p===51)continue;
     if(p===57){
       const wh=document.getElementById('win-house');
       if(wh){const rect=wh.getBoundingClientRect();steps.push({x:rect.left+rect.width/2,y:rect.top+rect.height/2,isWin:true});}
@@ -696,22 +699,22 @@ function animateMove(color,idx,fromPos,toPos,goties,captured,onDone){
     }
   }
   if(steps.length===0){fg.style.display='none';onDone();return;}
-  const gSize=fg.offsetWidth||parseInt(getComputedStyle(document.documentElement).getPropertyValue('--goti-size'))||28;
-  const getCenter=(s)=>{
+  const gSize=fg.offsetWidth||22;
+  const getCenter=s=>{
     if(s.isHome){const hcell=getHomeCellEl(color,s.r,s.c);if(hcell){const rect=hcell.getBoundingClientRect();return{x:rect.left+rect.width/2,y:rect.top+rect.height/2};}return null;}
     if(s.isWin)return{x:s.x,y:s.y};
     return getCellCenter(s.r,s.c);
   };
   const first=getCenter(steps[0]);
-  if(first)fg.style.transform=`translate(${first.x-gSize/2}px, ${first.y-gSize/2}px)`;
+  if(first){fg.style.left=(first.x-gSize/2)+'px';fg.style.top=(first.y-gSize/2)+'px';}
   let si=0;
   const next=()=>{
     if(si>=steps.length){fg.style.display='none';if(captured)sndStar();onDone();return;}
-    const s=steps[si++];const ctr=getCenter(s);
-    if(!ctr){setTimeout(next,140);return;}
-    fg.style.transform=`translate(${ctr.x-gSize/2}px, ${ctr.y-gSize/2}px)`;
-    if(!s.isHome){sndMove();if(s.r!==undefined){const k=s.r+','+s.c;if(SAFE_CELLS.has(k))setTimeout(sndStar,60);}}
-    setTimeout(next,140);
+    const s=steps[si++],ctr=getCenter(s);
+    if(!ctr){setTimeout(next,120);return;}
+    fg.style.left=(ctr.x-gSize/2)+'px';fg.style.top=(ctr.y-gSize/2)+'px';
+    if(!s.isHome){sndMove();if(s.r!==undefined){const k=s.r+','+s.c;if(SAFE_CELLS.has(k))setTimeout(sndStar,50);}}
+    setTimeout(next,120);
   };
   setTimeout(next,50);
 }
@@ -720,103 +723,70 @@ function renderGame(players,room,playerMapIn){
   const playerMap=playerMapIn||{};
   if(!playerMapIn)players.forEach(p=>{playerMap[p.color]=p;});
   renderGoties(room.goties||{},playerMap);
-  applyTurn(room.currentTurn||players[0]?.color||'red',playerMap,room.goties||{},waitingForMove?pendingRoll:0);
-  updateWinHouse(room.winners||[],playerMap);
+  const activeRoll=room.pendingMove&&room.pendingMove.uid===myUid&&room.pendingMove.color===room.currentTurn?room.pendingMove.roll:0;
+  applyTurn(room.currentTurn||players[0]?.color||'red',playerMap,room.goties||{},activeRoll,room);
+  updateWinHouse(room.winners||[],playerMap,room.mode);
 }
 
-function updateWinHouse(winners,playerMap){
+function updateWinHouse(winners,playerMap,mode){
   const el=document.getElementById('win-house-names');
   if(!winners||winners.length===0){el.textContent='';return;}
-  el.textContent=winners.map((c,i)=>(i+1)+'. '+(playerMap[c]?.name||c)).join('\n');
+  if(mode==='2v2')el.textContent=winners.map((team,i)=>(i+1)+'. '+team.map(c=>playerMap[c]?.name||c).join(' + ')).join('\n');
+  else el.textContent=winners.map((c,i)=>(i+1)+'. '+(playerMap[c]?.name||c)).join('\n');
 }
 
 function renderGoties(goties,playerMap){
+  document.querySelectorAll('.goti').forEach(g=>g.remove());
   document.querySelectorAll('.stack-badge').forEach(b=>b.remove());
   const occ={};
   COLORS.forEach(color=>{
     (goties[color]||[]).forEach((gt,idx)=>{
-      if(gt.pos===-1||gt.pos===57){
-        const existing=document.querySelector(`.goti[data-color="${color}"][data-idx="${idx}"]`);
-        if(existing)existing.remove();
-        return;
-      }
+      if(gt.pos===-1||gt.pos===57)return;
       const rc=getRC(color,gt.pos);if(!rc)return;
       const key=rc[0]+','+rc[1];
       if(!occ[key])occ[key]=[];
       occ[key].push({color,idx,pos:gt.pos});
     });
   });
-  const OFFSETS=[[0,0],[-4,-4],[4,-4],[-4,4],[4,4]];
+  const OFFSETS=[[0,0],[-4,-4],[4,-4],[-4,4],[4,4],[0,-6],[0,6],[-6,0],[6,0]];
   Object.entries(occ).forEach(([key,list])=>{
     const[r,c]=key.split(',').map(Number);
     const cell=getCellEl(r,c);if(!cell)return;
     const isSafe=SAFE_CELLS.has(key);
-    const center=(cell.offsetWidth-parseInt(getComputedStyle(document.documentElement).getPropertyValue('--goti-size')))/2;
+    const cellSize=cell.offsetWidth||44;
+    const gSize=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--goti-size'))||28;
+    const center=(cellSize-gSize)/2;
     if(isSafe){
       const byColor={};list.forEach(o=>{if(!byColor[o.color])byColor[o.color]=[];byColor[o.color].push(o);});
       Object.keys(byColor).forEach((color,ci)=>{
-        const items=byColor[color];const off=OFFSETS[ci]||[0,0];
-        updateOrCreateGoti(cell,color,items[0].idx,center+off[0],center+off[1],ci+2,items.length);
-        for(let i=1;i<items.length;i++){
-          const ex=document.querySelector(`.goti[data-color="${color}"][data-idx="${items[i].idx}"]`);
-          if(ex)ex.remove();
-        }
+        const items=byColor[color],off=OFFSETS[ci]||[0,0];
+        const el=document.createElement('div');
+        el.className='goti '+COLOR_CFG[color].cls;el.dataset.color=color;el.dataset.idx=items[0].idx;
+        el.style.left=(center+off[0])+'px';el.style.top=(center+off[1])+'px';el.style.zIndex=ci+2;
+        if(items.length>1){const b=document.createElement('div');b.className='stack-badge';b.textContent=items.length;el.appendChild(b);}
+        cell.appendChild(el);
       });
     }else{
       list.forEach((o,i)=>{
         const off=OFFSETS[i]||[0,0];
-        updateOrCreateGoti(cell,o.color,o.idx,center+off[0],center+off[1],i+2,0);
+        const el=document.createElement('div');
+        el.className='goti '+COLOR_CFG[o.color].cls;el.dataset.color=o.color;el.dataset.idx=o.idx;
+        el.style.left=(center+off[0])+'px';el.style.top=(center+off[1])+'px';el.style.zIndex=i+2;
+        cell.appendChild(el);
       });
     }
   });
   COLORS.forEach(color=>{
     const cfg=COLOR_CFG[color];
+    const cardEl=document.getElementById('card-'+color[0]);if(!cardEl)return;
+    cardEl.querySelectorAll('.token').forEach(t=>t.remove());
     (goties[color]||[]).forEach((gt,idx)=>{
-      const hId=`token-${color}-${idx}`;
-      let t=document.getElementById(hId);
-      if(gt.pos===-1){
-        if(!t){
-          const[hr,hc]=cfg.homeCells[idx];
-          const homeCell=getHomeCellEl(color,hr,hc);
-          if(homeCell){
-            t=document.createElement('div');
-            t.className='token t-'+color[0];
-            t.id=hId;
-            t.dataset.idx=idx;
-            t.dataset.color=color;
-            homeCell.appendChild(t);
-          }
-        }
-      }else{
-        if(t)t.remove();
-      }
+      if(gt.pos!==-1)return;
+      const[hr,hc]=cfg.homeCells[idx];
+      const homeCell=getHomeCellEl(color,hr,hc);if(!homeCell)return;
+      const t=document.createElement('div');t.className='token t-'+color[0];t.dataset.color=color;t.dataset.idx=idx;homeCell.appendChild(t);
     });
   });
-}
-
-function updateOrCreateGoti(cell,color,idx,left,top,zIndex,badgeCount){
-  let el=document.querySelector(`.goti[data-color="${color}"][data-idx="${idx}"]`);
-  if(!el){
-    el=document.createElement('div');
-    el.className='goti '+COLOR_CFG[color].cls;
-    el.dataset.color=color;
-    el.dataset.idx=idx;
-  }
-  el.style.left=left+'px';
-  el.style.top=top+'px';
-  el.style.zIndex=zIndex;
-  cell.appendChild(el);
-  let badge=el.querySelector('.stack-badge');
-  if(badgeCount>1){
-    if(!badge){
-      badge=document.createElement('div');
-      badge.className='stack-badge';
-      el.appendChild(badge);
-    }
-    badge.textContent=badgeCount;
-  }else if(badge){
-    badge.remove();
-  }
 }
 
 function getHomeCellEl(color,r,c){return document.querySelector(`[data-hcell="${color}-${r}-${c}"]`);}
@@ -834,6 +804,7 @@ function calcNewPos(currentPos,roll){
   if(currentPos<=50){
     const remaining=50-currentPos;
     if(roll<=remaining)return currentPos+roll;
+    // Position 51 is intentionally skipped because each color enters its home lane after position 50.
     const stepsIntoHome=roll-remaining-1;
     const newPos=52+stepsIntoHome;
     if(newPos>57)return null;
@@ -849,12 +820,16 @@ function canMove(color,idx,pos,roll,goties){
   return calcNewPos(pos,roll)!==null;
 }
 
-function applyTurn(color,playerMap,goties,roll){
-  const p=playerMap[color];const isMe=p?.uid===myUid&&p?.uid!==undefined;
-  if(roll>0&&isMe){document.getElementById('turn-label').innerHTML=`<span>🎲 Rolled ${roll} — pick a goti</span>`;}else if(isMe){document.getElementById('turn-label').innerHTML=`<span>🎲 Your Turn — Roll Dice!</span>`;}
+function applyTurn(color,playerMap,goties,roll,room){
+  const p=playerMap[color],isMe=p?.uid===myUid&&p?.uid!==undefined;
+  const pending=room?.pendingMove&&room.pendingMove.color===color;
+  if(roll>0&&isMe)setTurnText('🎲 Rolled '+roll+' — pick a goti');
+  else if(isMe)setTurnText('🎲 Your Turn — Roll Dice!');
+  else if(p&&pending)setTurnText((p.name||color)+' rolled '+room.pendingMove.roll+' — waiting for goti');
+  else if(p)setTurnText((p.name||color)+'\'s Turn');
   COLORS.forEach(c=>{const tag=document.getElementById('ptag-'+c);if(tag)tag.classList.toggle('active',c===color);});
   const bdw=document.getElementById('bottom-dice-wrap');
-  if(bdw)bdw.classList.toggle('disabled',!(color===myColor&&isMe&&!waitingForMove));
+  if(bdw)bdw.classList.toggle('disabled',!(color===myColor&&isMe&&!waitingForMove&&!room?.pendingMove));
   document.querySelectorAll('.goti.selectable').forEach(g=>{g.classList.remove('selectable');g.onclick=null;});
   document.querySelectorAll('.token.selectable').forEach(g=>{g.classList.remove('selectable');g.onclick=null;});
   if(isMe&&roll>0&&waitingForMove){
@@ -862,13 +837,14 @@ function applyTurn(color,playerMap,goties,roll){
     myGoties.forEach((gt,idx)=>{
       if(!canMove(myColor,idx,gt.pos,roll,goties))return;
       if(gt.pos===-1){
-        const hEl=document.getElementById(`token-${myColor}-${idx}`);
+        const[hr,hc]=COLOR_CFG[myColor].homeCells[idx];
+        const hEl=document.querySelector(`[data-hcell="${myColor}-${hr}-${hc}"] .token[data-idx="${idx}"]`);
         if(hEl){hEl.classList.add('selectable');hEl.onclick=()=>moveGoti(myColor,idx,roll);}
       }else{
         const rc=getRC(myColor,gt.pos);if(!rc)return;
         const cell=getCellEl(rc[0],rc[1]);if(!cell)return;
-        const gel=document.querySelector(`.goti[data-color="${myColor}"][data-idx="${idx}"]`);
-        if(gel){gel.classList.add('selectable');cell.appendChild(gel);gel.onclick=()=>moveGoti(myColor,idx,roll);}
+        const own=Array.from(cell.querySelectorAll('.goti')).find(gel=>gel.dataset.color===myColor&&gel.dataset.idx===String(idx));
+        if(own){own.classList.add('selectable');cell.appendChild(own);own.onclick=()=>moveGoti(myColor,idx,roll);}
       }
     });
   }
@@ -876,47 +852,69 @@ function applyTurn(color,playerMap,goties,roll){
 
 async function moveGoti(color,idx,roll){
   if(!waitingForMove)return;
+  const snap=await get(ref(db,'games/'+roomCode));
+  const room=snap.val();if(!room||room.status!=='playing')return;
+  const pending=room.pendingMove||{};
+  if(room.currentTurn!==color||pending.uid!==myUid||pending.color!==color||pending.roll!==roll)return;
+  const goties=room.goties||{};
+  const gt=(goties[color]||[])[idx];if(!gt||!canMove(color,idx,gt.pos,roll,goties))return;
   waitingForMove=false;pendingRoll=0;
   document.querySelectorAll('.goti.selectable').forEach(g=>{g.classList.remove('selectable');g.onclick=null;});
   document.querySelectorAll('.token.selectable').forEach(g=>{g.classList.remove('selectable');g.onclick=null;});
-  const snap=await get(ref(db,'games/'+roomCode));
-  const room=snap.val();if(!room)return;
-  const goties=room.goties||{};
-  const gt=(goties[color]||[])[idx];
-  const players=Object.values(room.players||{}).sort((a,b)=>a.joinedAt-b.joinedAt);
-  const onlinePlayers=players.filter(p=>p.isOnline!==false);
+  const players=sortPlayers(Object.values(room.players||{}));
   const fromPos=gt.pos;
   let newPos,captured=false;
-  if(fromPos===-1&&roll===6){newPos=0;}else{newPos=calcNewPos(fromPos,roll);if(newPos===null)return;}
+  if(fromPos===-1&&roll===6)newPos=0;
+  else{newPos=calcNewPos(fromPos,roll);if(newPos===null)return;}
   let winners=room.winners||[];
   if(newPos>=0&&newPos<=50){
-    const rc=getRC(color,newPos);const rcKey=rc?rc[0]+','+rc[1]:'';const isSafe=SAFE_CELLS.has(rcKey);
-    if(!isSafe){
+    const rc=getRC(color,newPos),rcKey=rc?rc[0]+','+rc[1]:'';
+    if(!SAFE_CELLS.has(rcKey)){
       for(const oc of COLORS){
-        if(oc===color)continue;const og=goties[oc]||[];
+        if(oc===color||isSameTeam(room.mode,oc,color))continue;
+        const og=goties[oc]||[];
         for(let oi=0;oi<og.length;oi++){
-          if(og[oi].pos<0||og[oi].pos>=51)continue;const orc=getRC(oc,og[oi].pos);
+          if(og[oi].pos<0||og[oi].pos>=51)continue;
+          const orc=getRC(oc,og[oi].pos);
           if(orc&&rc&&orc[0]===rc[0]&&orc[1]===rc[1]){goties[oc][oi]={pos:-1};captured=true;}
         }
       }
     }
   }
-  if(newPos>57)newPos=57;
   goties[color][idx]={pos:newPos};
-  if(!winners.includes(color)&&allFinished(goties,color)){winners=[...winners,color];}
-  const extraTurn=(roll===6||captured);
-  if(!extraTurn)consecutiveSixes=0;
-  let nextTurn=room.currentTurn;
-  if(!extraTurn){const cols=onlinePlayers.map(p=>p.color).filter(c=>!allFinished(goties,c));if(cols.length>0){const i2=cols.indexOf(color);nextTurn=cols[(i2+1)%cols.length];}}
-  const allWon=winners.length>=players.length;
+  const updates={goties,pendingMove:null,turnStartTime:Date.now(),lastRoll:{uid:myUid,color,value:roll,at:Date.now()}};
+  let finishedNow=false;
+  if(room.mode==='2v2'){
+    if(teamFinished(goties,room.mode,color)){
+      const team=getTeamColors(room.mode,color);
+      if(!winners.some(w=>Array.isArray(w)&&w.join(',')===team.join(',')))winners=[...winners,team];
+      finishedNow=true;
+    }
+  }else if(!winners.includes(color)&&allFinished(goties,color)){
+    winners=[...winners,color];
+    finishedNow=true;
+  }
   const evKey=myUid+'-'+Date.now();
   const moveEv={type:'move',color,idx,fromPos,toPos:newPos,captured,key:evKey,at:Date.now()};
-  const updates={goties,currentTurn:nextTurn,turnStartTime:Date.now(),winners,lastEvent:moveEv,lastRoll:{uid:myUid,color,value:roll,at:Date.now()}};
-  if(allWon){updates.status='finished';updates.winner=winners[0];updates.lastEvent={type:'win',color:winners[0],key:evKey+'w',at:Date.now()};}
+  updates.winners=winners;updates.lastEvent=moveEv;
+  const sixCounts={...(room.sixCounts||makeSixCounts())};
+  if(roll!==6)sixCounts[color]=0;
+  updates.sixCounts=sixCounts;
+  if(finishedNow){
+    updates.status='finished';
+    updates.winner=color;
+    updates.winnerTeam=room.mode==='2v2'?getTeamColors(room.mode,color):null;
+    updates.lastEvent={type:'win',color,key:evKey+'w',at:Date.now()};
+  }else{
+    const extraTurn=(roll===6||captured)&&isColorActive(goties,room.mode,color);
+    updates.currentTurn=extraTurn?color:getNextTurn(color,players,goties,room.mode);
+  }
   await update(ref(db,'games/'+roomCode),updates);
 }
 
-function allFinished(goties,color){return(goties[color]||[]).every(g=>g.pos===57);}
+function secureDiceRoll(){
+  try{const a=new Uint32Array(1);crypto.getRandomValues(a);return(a[0]%6)+1;}catch(e){return Math.floor(Math.random()*6)+1;}
+}
 
 function setupBottomDice(){
   const bdw=document.getElementById('bottom-dice-wrap');
@@ -926,37 +924,41 @@ function setupBottomDice(){
   bdw.addEventListener('click',async()=>{
     if(rolling||bdw.classList.contains('disabled'))return;
     rolling=true;sndDice();
+    const snap=await get(ref(db,'games/'+roomCode));
+    const room=snap.val();
+    if(!room||room.status!=='playing'||room.currentTurn!==myColor||room.pendingMove){rolling=false;bdw.classList.add('disabled');return;}
+    const player=room.players?.[myUid];
+    if(!player||player.color!==myColor){rolling=false;bdw.classList.add('disabled');return;}
     const colorName=myColor;
-    const val=Math.floor(Math.random()*6)+1;
+    const val=secureDiceRoll();
     const evKey=myUid+'-'+Date.now();
     await update(ref(db,'games/'+roomCode),{lastEvent:{type:'dice',color:colorName,value:val,uid:myUid,key:evKey,at:Date.now()}});
     cube.style.setProperty('--df',FACE_T[val]);cube.classList.remove('spinning');void cube.offsetWidth;cube.classList.add('spinning');
     cube.addEventListener('animationend',async()=>{
       cube.classList.remove('spinning');cube.style.transform=FACE_T[val];rolling=false;bdw.classList.add('disabled');
-      const snap=await get(ref(db,'games/'+roomCode));const room=snap.val();if(!room)return;
-      const goties=room.goties||{};const gtArr=goties[colorName]||[];
-      const players=Object.values(room.players||{}).sort((a,b)=>a.joinedAt-b.joinedAt);
-      const onlinePlayers=players.filter(p=>p.isOnline!==false);
+      const snap2=await get(ref(db,'games/'+roomCode));const room2=snap2.val();if(!room2||room2.currentTurn!==colorName||room2.pendingMove)return;
+      const goties=room2.goties||{},gtArr=goties[colorName]||[];
+      const players=sortPlayers(Object.values(room2.players||{}));
+      const sixCounts={...(room2.sixCounts||makeSixCounts())};
       if(val===6){
-        consecutiveSixes+=1;
-        if(consecutiveSixes>=3){
-          consecutiveSixes=0;
-          const cols=onlinePlayers.map(p=>p.color).filter(c=>!allFinished(goties,c));
-          const ci=cols.indexOf(colorName);const nextTurn=cols[(ci+1)%cols.length];
-          await update(ref(db,'games/'+roomCode),{currentTurn:nextTurn,turnStartTime:Date.now(),lastRoll:{uid:myUid,color:colorName,value:val,at:Date.now()}});
+        sixCounts[colorName]=(sixCounts[colorName]||0)+1;
+        if(sixCounts[colorName]>=3){
+          sixCounts[colorName]=0;
+          const nextTurn=getNextTurn(colorName,players,goties,room2.mode);
+          await update(ref(db,'games/'+roomCode),{currentTurn:nextTurn,turnStartTime:Date.now(),pendingMove:null,sixCounts,lastRoll:{uid:myUid,color:colorName,value:val,at:Date.now()}});
           return;
         }
-      }else{consecutiveSixes=0;}
+      }else sixCounts[colorName]=0;
       const canAny=gtArr.some((gt,i)=>canMove(colorName,i,gt.pos,val,goties));
       if(!canAny){
-        const cols=onlinePlayers.map(p=>p.color).filter(c=>!allFinished(goties,c));
-        const ci=cols.indexOf(colorName);const nextTurn=cols[(ci+1)%cols.length];
-        await update(ref(db,'games/'+roomCode),{currentTurn:nextTurn,turnStartTime:Date.now(),lastRoll:{uid:myUid,color:colorName,value:val,at:Date.now()}});
+        const nextTurn=getNextTurn(colorName,players,goties,room2.mode);
+        await update(ref(db,'games/'+roomCode),{currentTurn:nextTurn,turnStartTime:Date.now(),pendingMove:null,sixCounts,lastRoll:{uid:myUid,color:colorName,value:val,at:Date.now()}});
         return;
       }
       pendingRoll=val;waitingForMove=true;
+      await update(ref(db,'games/'+roomCode),{pendingMove:{uid:myUid,color:colorName,roll:val,key:evKey,at:Date.now()},turnStartTime:Date.now(),sixCounts,lastRoll:{uid:myUid,color:colorName,value:val,at:Date.now()}});
       const playerMap={};players.forEach(p=>{playerMap[p.color]=p;});
-      applyTurn(colorName,playerMap,goties,val);
+      applyTurn(colorName,playerMap,goties,val,room2);
     },{once:true});
   });
 }
@@ -994,11 +996,15 @@ function buildBoard(){
   }
 }
 
-try{
-  const saved=JSON.parse(localStorage.getItem('ludo_session')||'null');
-  if(saved?.myUid){
-    myUid=saved.myUid;myName=saved.myName;myColor=saved.myColor;roomCode=saved.roomCode;
-    setupPresence();subscribeToRoom(roomCode);
-  }else{window.showScreen('lobby-screen');}
-}catch(e){window.showScreen('lobby-screen');}
+async function initSavedSession(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('ludo_session')||'null');
+    if(saved?.myUid){
+      myUid=saved.myUid;myName=saved.myName||'';myColor=saved.myColor||'';roomCode=saved.roomCode||'';
+      await setupPresence();subscribeToRoom(roomCode);
+    }else window.showScreen('lobby-screen');
+  }catch(e){window.showScreen('lobby-screen');}
+}
+
+initSavedSession();
 </script>
