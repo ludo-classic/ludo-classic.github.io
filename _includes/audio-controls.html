@@ -3,7 +3,7 @@
     width: 100%;
     max-width: 740px;
     height: 46px;
-    background: rgba(0, 0, 0, 0.04);
+    background: #ffffff;
     border: 1px solid var(--pbr);
     border-radius: 10px;
     align-items: center;
@@ -11,12 +11,13 @@
     padding: 0 14px;
     margin-bottom: 10px;
     display: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   }
   .audio-btn {
     background: transparent;
     border: none;
     font-size: 1.18rem;
-    color: #475569;
+    color: var(--gold2);
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
@@ -36,82 +37,12 @@
     transform: translateY(-50%) rotate(45deg);
     border-radius: 2px;
   }
-  .voice-menu-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 9998;
-  }
-  .voice-menu-overlay.active { display: block; }
-  .voice-menu {
-    position: absolute;
-    bottom: 72px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.95);
-    border: 1px solid var(--gold);
-    border-radius: 10px;
-    padding: 10px;
-    width: 230px;
-    box-shadow: 0 10px 26px rgba(0,0,0,0.5);
-    color: #fff;
-    z-index: 9999;
-    font-family: 'Rajdhani', sans-serif;
-  }
-  .voice-menu-header {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--gold);
-    border-bottom: 1px solid rgba(154,123,44,0.3);
-    padding-bottom: 6px;
-    margin-bottom: 8px;
-    text-align: center;
-  }
-  .voice-players-list { display: flex; flex-direction: column; gap: 7px; }
-  .voice-player {
-    display: flex;
-    align-items: center;
-    background: rgba(255,255,255,0.05);
-    padding: 6px 9px;
-    border-radius: 7px;
-    min-height: 34px;
-  }
-  .vp-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-  .vp-name { flex: 1; margin-left: 9px; font-weight: 600; font-size: 0.84rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .vp-toggle {
-    background: transparent;
-    border: none;
-    color: #69f0ae;
-    cursor: pointer;
-    font-size: 0.98rem;
-    transition: all 0.2s;
-    width: 26px;
-    height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .vp-toggle.muted { color: #ff8a80; }
-  .vp-empty { color: #cbd5e1; font-size: 0.8rem; text-align: center; padding: 7px 4px; }
 </style>
 
 <div class="audio-bar-wrapper" id="audio-bar-wrapper">
   <button class="audio-btn" id="btn-bgm" onclick="window.toggleBGM()"><i class="fas fa-music"></i></button>
   <button class="audio-btn" id="btn-sfx" onclick="window.toggleSFX()"><i class="fas fa-volume-up"></i></button>
   <button class="audio-btn muted" id="btn-mic" onclick="window.toggleMic()"><i class="fas fa-microphone"></i></button>
-  <button class="audio-btn" id="btn-speaker" onclick="window.toggleVoiceMenu()"><i class="fas fa-headphones"></i></button>
-</div>
-
-<div class="voice-menu-overlay" id="voice-menu-overlay" onclick="window.toggleVoiceMenu(false)">
-  <div class="voice-menu" onclick="event.stopPropagation()">
-    <div class="voice-menu-header">Voice Chat Players</div>
-    <div class="voice-players-list" id="voice-players-list"></div>
-  </div>
 </div>
 
 <script>
@@ -174,12 +105,7 @@ window.toggleSFX = function() {
   if (btn) btn.classList.toggle('muted', !window.isSfxEnabled);
 };
 
-window.toggleVoiceMenu = function(forceState) {
-  const overlay = document.getElementById('voice-menu-overlay');
-  if (!overlay) return;
-  if (typeof forceState === 'boolean') overlay.classList.toggle('active', forceState);
-  else overlay.classList.toggle('active');
-};
+
 
 window.initVoiceChat = async function(myUid) {
   if (myPeer) return;
@@ -218,7 +144,7 @@ window.togglePlayerMute = function(targetUid) {
   const btn = document.getElementById('btn-mute-' + targetUid);
   if (btn) {
     btn.classList.toggle('muted', !!localMutedPlayers[targetUid]);
-    btn.innerHTML = localMutedPlayers[targetUid] ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+    btn.innerHTML = localMutedPlayers[targetUid] ? '<i class="fas fa-volume-mute" style="color:#dc2626"></i>' : '<i class="fas fa-volume-up"></i>';
   }
 };
 
@@ -254,27 +180,13 @@ function cleanupRemote(targetUid) {
   }
 }
 
-function renderVoiceEmpty(listContainer) {
-  const empty = document.createElement('div');
-  empty.className = 'vp-empty';
-  empty.textContent = 'No players connected';
-  listContainer.appendChild(empty);
-}
-
 window.syncVoicePeers = async function(players, myUid) {
   window.lastVoicePlayers = players;
   window.lastVoiceMyUid = myUid;
-  const listContainer = document.getElementById('voice-players-list');
-  if (!listContainer) return;
-  listContainer.innerHTML = '';
   const myId = String(myUid || '').trim();
   const onlinePlayers = (Array.isArray(players) ? players : []).filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
   const activeUids = new Set(onlinePlayers.map(getVoiceUid));
   Object.keys(connectedPeers).forEach(uid => { if (!activeUids.has(uid)) cleanupRemote(uid); });
-  if (onlinePlayers.length === 0) {
-    renderVoiceEmpty(listContainer);
-    return;
-  }
   onlinePlayers.forEach(p => {
     const uid = getVoiceUid(p);
     voicePlayerCache[uid] = p;
@@ -284,25 +196,6 @@ window.syncVoicePeers = async function(players, myUid) {
         if (call) handleRemoteCall(call);
       } catch (err) {}
     }
-    const isMuted = !!localMutedPlayers[uid];
-    const row = document.createElement('div');
-    row.className = 'voice-player';
-    const dot = document.createElement('div');
-    dot.className = 'vp-dot';
-    dot.style.background = COLOR_HEX[p.color] || '#ccc';
-    const name = document.createElement('div');
-    name.className = 'vp-name';
-    name.textContent = safeVoiceName(p, uid);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'btn-mute-' + uid;
-    btn.className = 'vp-toggle' + (isMuted ? ' muted' : '');
-    btn.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
-    btn.addEventListener('click', () => window.togglePlayerMute(uid));
-    row.appendChild(dot);
-    row.appendChild(name);
-    row.appendChild(btn);
-    listContainer.appendChild(row);
   });
 };
 
