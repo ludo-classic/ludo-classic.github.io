@@ -188,25 +188,6 @@ body{background:var(--bg);color:#1e293b;min-height:100vh;display:flex;flex-direc
 {% include win.html %}
 {% include lobby.html %}
 
-<div id="waiting-screen" class="screen">
-  <div class="waiting-card">
-    <div class="room-header">
-      <div class="room-label">Room Code — click to copy</div>
-      <div class="room-code" id="display-room-code">XXXX</div>
-      <div class="room-mode-badge" id="display-mode">1v1</div>
-    </div>
-    <div class="players-list" id="players-list"></div>
-    <div class="waiting-footer">
-      <div class="waiting-dots" id="waiting-text">Waiting for players…</div>
-      <div class="btn-row">
-        <button class="ghost-btn" onclick="copyCode()">⧉ Copy Code</button>
-        <button class="ghost-btn" onclick="shareLink()">↗ Share Link</button>
-        <button class="danger-btn" onclick="leaveRoom()">Leave</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div id="game-screen" class="screen">
   <div class="game-header">
     <div class="game-actions">
@@ -281,8 +262,8 @@ const MAIN_PATH=[[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,
 const COLOR_CFG={
   red:{startIdx:0,homeCol:[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],cls:'goti-r',homeCells:[[1,1],[1,4],[4,1],[4,4]]},
   green:{startIdx:13,homeCol:[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],cls:'goti-g',homeCells:[[1,10],[1,13],[4,10],[4,13]]},
-  yellow:{startIdx:26,homeCol:[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],cls:'goti-y',homeCells:[[10,10],[10,13],[13,10],[13,13]]},
-  blue:{startIdx:39,homeCol:[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],cls:'goti-b',homeCells:[[10,1],[10,4],[13,1],[13,4]]}
+  yellow:{startIdx:39,homeCol:[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],cls:'goti-y',homeCells:[[10,1],[10,4],[13,1],[13,4]]},
+  blue:{startIdx:26,homeCol:[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],cls:'goti-b',homeCells:[[10,10],[10,13],[13,10],[13,13]]}
 };
 
 const COLOR_GRAD={
@@ -305,7 +286,7 @@ let lastEmojiKey='',bgmPlaying=false,pendingGameState=null,audioCtx=null;
 
 function sortPlayers(players){return players.sort((a,b)=>(a.joinedAt||0)-(b.joinedAt||0));}
 function getSlots(mode){return MODE_SLOTS[mode]||2;}
-function slotColors(mode){return COLORS.slice(0,getSlots(mode));}
+function slotColors(mode){return COLORS;}
 function getOnlinePlayers(players){return players.filter(p=>p&&p.isOnline!==false);}
 function getPlayerByColor(players,color){return players.find(p=>p.color===color);}
 function getTeamColors(mode,color){return mode==='2v2'?(color==='red'||color==='yellow'?['red','yellow']:['green','blue']):[color];}
@@ -313,7 +294,7 @@ function isSameTeam(mode,a,b){return mode==='2v2'&&getTeamColors(mode,a).include
 function allFinished(goties,color){return(goties[color]||[]).length===4&&(goties[color]||[]).every(g=>g.pos===57);}
 function teamFinished(goties,mode,color){return getTeamColors(mode,color).every(c=>allFinished(goties,c));}
 function isColorActive(goties,mode,color){return mode==='2v2'?!teamFinished(goties,mode,color)&&!allFinished(goties,color):!allFinished(goties,color);}
-function getActiveColors(players,goties,mode){return getOnlinePlayers(players).map(p=>p.color).filter(c=>slotColors(mode).includes(c)&&isColorActive(goties,mode,c));}
+function getActiveColors(players,goties,mode){return getOnlinePlayers(players).map(p=>p.color).filter(c=>COLORS.includes(c)&&isColorActive(goties,mode,c));}
 function getNextTurn(currentColor,players,goties,mode){const cols=getActiveColors(players,goties,mode);if(cols.length===0)return currentColor;const idx=cols.indexOf(currentColor);return cols[(idx<0?0:idx+1)%cols.length];}
 function makeInitialGoties(){const ig={};COLORS.forEach(c=>{ig[c]=[{pos:-1},{pos:-1},{pos:-1},{pos:-1}];});return ig;}
 function makeSixCounts(){return{red:0,green:0,yellow:0,blue:0};}
@@ -465,9 +446,9 @@ window.createRoom=async function(){
   if(!rName){if(err)err.textContent='Please enter a room name.';return;}
   window.setBtnLoad('create-btn',true,'Create Room');
   myUid=Math.random().toString(36).slice(2,9)+Date.now().toString(36);
-  myName=name;myColor='red';roomCode=Math.random().toString(36).slice(2,6).toUpperCase();
+  myName=name;myColor=COLORS.includes(window.selectedColor)?window.selectedColor:'red';roomCode=Math.random().toString(36).slice(2,6).toUpperCase();
   try{
-    await set(ref(db,'games/'+roomCode),{name:rName,mode:safeMode(),status:'waiting',createdAt:Date.now(),hostUid:myUid,players:{[myUid]:{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true,lastSeen:Date.now()}},goties:makeInitialGoties(),winners:[],currentTurn:'red',turnStartTime:Date.now(),sixCounts:makeSixCounts(),pendingMove:null});
+    await set(ref(db,'games/'+roomCode),{name:rName,mode:safeMode(),status:'waiting',createdAt:Date.now(),hostUid:myUid,players:{[myUid]:{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true,lastSeen:Date.now()}},goties:makeInitialGoties(),winners:[],currentTurn:myColor,turnStartTime:Date.now(),sixCounts:makeSixCounts(),pendingMove:null});
     saveSession();
     await setupPresence();
     window.setBtnLoad('create-btn',false,'Create Room');
@@ -497,11 +478,13 @@ window.joinRoom=async function(){
     const stale=players.filter(p=>p.isOnline===false);
     for(const p of stale){if(p.uid)await remove(ref(db,'games/'+rCode+'/players/'+p.uid));}
     const fresh=players.filter(p=>p.isOnline!==false);
+    if(fresh.length>=getSlots(mode)){if(err)err.textContent='Room is full.';window.setBtnLoad('join-btn',false,'Join Room');return;}
     const used=new Set(fresh.map(p=>p.color));
-    const nextColor=colors.find(c=>!used.has(c));
-    if(!nextColor){if(err)err.textContent='Room is full.';window.setBtnLoad('join-btn',false,'Join Room');return;}
+    const available=colors.filter(c=>!used.has(c));
+    const picked=COLORS.includes(window.selectedJoinColor)&&available.includes(window.selectedJoinColor)?window.selectedJoinColor:available[0];
+    if(!picked){if(err)err.textContent='No color available.';window.setBtnLoad('join-btn',false,'Join Room');return;}
     myUid=Math.random().toString(36).slice(2,9)+Date.now().toString(36);
-    myName=name;myColor=nextColor;roomCode=rCode;
+    myName=name;myColor=picked;roomCode=rCode;
     await set(ref(db,'games/'+rCode+'/players/'+myUid),{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true,lastSeen:Date.now()});
     saveSession();
     await setupPresence();
@@ -568,14 +551,14 @@ function renderWaiting(players,mode,rCode,room){
   document.getElementById('display-mode').textContent={'1v1':'1 vs 1','2v2':'2 vs 2','ffa':'Free For All'}[mode]||mode;
   const colors=slotColors(mode);
   const list=document.getElementById('players-list');list.innerHTML='';
-  colors.forEach((color,i)=>{
+  colors.forEach(color=>{
     const p=getPlayerByColor(players,color);
     const slot=document.createElement('div');
     slot.className='player-slot'+(p?' filled':'')+(p&&p.isOnline===false?' offline':'');
     const dot=document.createElement('div');dot.className='player-color-dot';
     dot.style.background={red:'#c62828',green:'#2e7d32',yellow:'#f9a825',blue:'#1565c0'}[color];
     const nm=document.createElement('div');nm.className='player-name-w'+(p?'':' empty');
-    nm.textContent=p?(p.isOnline===false?p.name+' (Offline)':p.name):'Waiting…';
+    nm.textContent=p?(p.isOnline===false?p.name+' (Offline)':p.name):color.charAt(0).toUpperCase()+color.slice(1)+' available';
     slot.appendChild(dot);slot.appendChild(nm);
     if(p){
       if(p.uid===myUid){const y=document.createElement('span');y.className='player-you-tag';y.textContent='YOU';slot.appendChild(y);}
@@ -583,22 +566,26 @@ function renderWaiting(players,mode,rCode,room){
     }
     list.appendChild(slot);
   });
-  const onlinePlayers=getOnlinePlayers(players).filter(p=>colors.includes(p.color));
+  const onlinePlayers=getOnlinePlayers(players).filter(p=>COLORS.includes(p.color));
+  const used=new Set(onlinePlayers.map(p=>p.color));
+  const changeColors=COLORS.filter(c=>!used.has(c)||c===myColor);
+  if(window.renderWaitingAvailableColors)window.renderWaitingAvailableColors(changeColors,myColor);
   const wt=document.getElementById('waiting-text');
-  if(onlinePlayers.length>=colors.length){
+  const need=getSlots(mode);
+  if(onlinePlayers.length>=need){
     wt.textContent='All players joined! Starting…';
     if((room?.hostUid||players[0]?.uid)===myUid)setTimeout(startGame,1200);
-  }else wt.textContent='Waiting for players… ('+onlinePlayers.length+'/'+colors.length+')';
+  }else wt.textContent='Waiting for players… ('+onlinePlayers.length+'/'+need+')';
 }
 
 async function startGame(){
   const snap=await get(ref(db,'games/'+roomCode));
   const room=snap.val();if(!room||room.status!=='waiting')return;
   const players=sortPlayers(Object.values(room.players||{}));
-  const colors=slotColors(room.mode);
-  const online=getOnlinePlayers(players).filter(p=>colors.includes(p.color));
-  if(online.length<colors.length)return;
-  await update(ref(db,'games/'+roomCode),{status:'playing',currentTurn:colors[0],turnStartTime:Date.now(),pendingMove:null,sixCounts:room.sixCounts||makeSixCounts()});
+  const online=getOnlinePlayers(players).filter(p=>COLORS.includes(p.color));
+  if(online.length<getSlots(room.mode))return;
+  const firstTurn=COLORS.find(c=>online.some(p=>p.color===c))||online[0]?.color||'red';
+  await update(ref(db,'games/'+roomCode),{status:'playing',currentTurn:firstTurn,turnStartTime:Date.now(),pendingMove:null,sixCounts:room.sixCounts||makeSixCounts()});
 }
 
 async function checkGameRules(room,players){
@@ -906,7 +893,7 @@ async function moveGoti(color,idx,roll){
     updates.winnerTeam=room.mode==='2v2'?getTeamColors(room.mode,color):null;
     updates.lastEvent={type:'win',color,key:evKey+'w',at:Date.now()};
   }else{
-    const extraTurn=(roll===6||captured)&&isColorActive(goties,room.mode,color);
+    const extraTurn=roll===6||captured;
     updates.currentTurn=extraTurn?color:getNextTurn(color,players,goties,room.mode);
   }
   await update(ref(db,'games/'+roomCode),updates);
@@ -996,6 +983,53 @@ function buildBoard(){
   }
 }
 
+window.changeWaitingColor=async function(color){
+  if(!roomCode||!myUid||!COLORS.includes(color)||color===myColor)return;
+  try{
+    const snap=await get(ref(db,'games/'+roomCode));
+    const room=snap.val();if(!room||room.status!=='waiting')return;
+    const players=sortPlayers(Object.values(room.players||{}));
+    const used=new Set(getOnlinePlayers(players).filter(p=>p.uid!==myUid).map(p=>p.color));
+    if(used.has(color))return;
+    await update(ref(db,'games/'+roomCode+'/players/'+myUid),{color,lastSeen:Date.now()});
+    myColor=color;saveSession();
+  }catch(e){}
+};
+
+async function refreshJoinRoomPreview(){
+  const codeEl=document.getElementById('join-code');
+  const err=document.getElementById('join-error');
+  const code=(codeEl?.value||'').trim().toUpperCase();
+  if(!code){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Enter room code to choose color');return;}
+  if(code.length<4){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Enter full room code');return;}
+  try{
+    const snap=await get(ref(db,'games/'+code));
+    const room=snap.val();
+    if(!room){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Room not found');return;}
+    if(room.status!=='waiting'){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Game already started');return;}
+    const players=sortPlayers(Object.values(room.players||{}));
+    const fresh=getOnlinePlayers(players);
+    if(fresh.length>=getSlots(room.mode)){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Room is full');return;}
+    const used=new Set(fresh.map(p=>p.color));
+    const available=COLORS.filter(c=>!used.has(c));
+    if(window.renderJoinAvailableColors)window.renderJoinAvailableColors(available,available.includes(window.selectedJoinColor)?window.selectedJoinColor:available[0],null);
+    if(err)err.textContent='';
+  }catch(e){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Could not load room');}
+}
+
+window.refreshJoinRoomPreview=refreshJoinRoomPreview;
+
+function setupLobbyHooks(){
+  const joinCode=document.getElementById('join-code');
+  if(joinCode){
+    let t=null;
+    joinCode.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(refreshJoinRoomPreview,350);});
+    joinCode.addEventListener('blur',refreshJoinRoomPreview);
+    if(joinCode.value)refreshJoinRoomPreview();
+  }
+  if(window.renderCreateColorChoices)window.renderCreateColorChoices();
+}
+
 async function initSavedSession(){
   try{
     const saved=JSON.parse(localStorage.getItem('ludo_session')||'null');
@@ -1006,5 +1040,6 @@ async function initSavedSession(){
   }catch(e){window.showScreen('lobby-screen');}
 }
 
+setupLobbyHooks();
 initSavedSession();
 </script>
