@@ -187,11 +187,7 @@
     renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'Enter room code to choose color');
   };
 
-  window.renderWaitingAvailableColors=function(colors,selected){
-    renderColorGrid('waiting-color-grid',colors,selected,color=>{
-      if(window.changeWaitingColor)window.changeWaitingColor(color);
-    },'All colors are taken');
-  };
+
 
   document.querySelectorAll('.mode-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
