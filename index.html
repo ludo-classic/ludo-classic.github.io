@@ -178,9 +178,9 @@ body{background:var(--bg);color:#1e293b;min-height:100vh;display:flex;flex-direc
 }
 </style>
 
-<audio id="dice-snd" src="/assets/dice-roll.mp3" preload="auto"></audio>
-<audio id="win-snd" src="/assets/win.mp3" preload="auto"></audio>
-<audio id="bgm-snd" src="/assets/start-bgm.mp3" preload="auto" loop></audio>
+<audio id="dice-snd" src="{{ '/assets/dice-roll.mp3' | relative_url }}" preload="auto"></audio>
+<audio id="win-snd" src="{{ '/assets/win.mp3' | relative_url }}" preload="auto"></audio>
+<audio id="bgm-snd" src="{{ '/assets/start-bgm.mp3' | relative_url }}" preload="auto" loop></audio>
 
 <div id="floating-goti"></div>
 <div id="emoji-toast-wrap"></div>
@@ -253,7 +253,7 @@ body{background:var(--bg);color:#1e293b;min-height:100vh;display:flex;flex-direc
 
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import{getDatabase,ref,get,update,onValue,remove,onDisconnect,runTransaction}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import{getDatabase,ref,set,get,update,onValue,remove,onDisconnect}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const app=initializeApp({databaseURL:"https://talkrush-76259-default-rtdb.asia-southeast1.firebasedatabase.app/"});
 const db=getDatabase(app);
@@ -289,9 +289,6 @@ function sortPlayers(players){return players.sort((a,b)=>(a.joinedAt||0)-(b.join
 function getSlots(mode){return MODE_SLOTS[mode]||2;}
 function slotColors(mode){return COLORS;}
 function getOnlinePlayers(players){return players.filter(p=>p&&p.isOnline!==false);}
-function getReservedColors(players,excludeUid){return new Set(getOnlinePlayers(players).filter(p=>p.uid!==excludeUid).map(p=>p.color).filter(c=>COLORS.includes(c)));}
-function getAvailableColors(mode,players,excludeUid){const reserved=getReservedColors(players,excludeUid);return slotColors(mode).filter(c=>COLORS.includes(c)&&!reserved.has(c));}
-function pickAvailableColor(mode,players,preferred,excludeUid){const available=getAvailableColors(mode,players,excludeUid);return COLORS.includes(preferred)&&available.includes(preferred)?preferred:(available[0]||'');}
 function getPlayerByColor(players,color){return players.find(p=>p.color===color);}
 function getSafePlayerName(p,fallback){const raw=(p&&(p.name||p.displayName||p.username||p.nick))||'';const name=String(raw).trim();if(name)return name;const uid=String(p?.uid||'').trim();return uid?uid.slice(0,8):fallback;}
 function getTeamColors(mode,color){return mode==='2v2'?(color==='red'||color==='yellow'?['red','yellow']:['green','blue']):[color];}
@@ -299,13 +296,12 @@ function isSameTeam(mode,a,b){return mode==='2v2'&&getTeamColors(mode,a).include
 function allFinished(goties,color){return(goties[color]||[]).length===4&&(goties[color]||[]).every(g=>g.pos===57);}
 function teamFinished(goties,mode,color){return getTeamColors(mode,color).every(c=>allFinished(goties,c));}
 function isColorActive(goties,mode,color){return mode==='2v2'?!teamFinished(goties,mode,color)&&!allFinished(goties,color):!allFinished(goties,color);}
-function getActiveColors(players,goties,mode){const active=new Set(getOnlinePlayers(players).map(p=>p.color).filter(c=>COLORS.includes(c)&&isColorActive(goties,mode,c)));return COLORS.filter(c=>active.has(c));}
+function getActiveColors(players,goties,mode){return players.filter(p=>p&&p.color).map(p=>p.color).filter(c=>COLORS.includes(c)&&isColorActive(goties,mode,c));}
 function getNextTurn(currentColor,players,goties,mode){const cols=getActiveColors(players,goties,mode);if(cols.length===0)return currentColor;const idx=cols.indexOf(currentColor);return cols[(idx<0?0:idx+1)%cols.length];}
 function makeInitialGoties(){const ig={};COLORS.forEach(c=>{ig[c]=[{pos:-1},{pos:-1},{pos:-1},{pos:-1}];});return ig;}
 function makeSixCounts(){return{red:0,green:0,yellow:0,blue:0};}
 function normalizeEmoji(emoji){return VALID_EMOJIS.has(emoji)?emoji:'❤️';}
 function safeMode(){return MODE_SLOTS[window.selectedMode]?window.selectedMode:'1v1';}
-function makeRoomCode(){return Math.random().toString(36).slice(2,6).toUpperCase();}
 
 function getACtx(){
   if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
@@ -406,6 +402,8 @@ function subscribeToRoom(code){
     const room=snap.val();
     if(!room){window.showScreen('lobby-screen');localStorage.removeItem('ludo_session');return;}
     const players=sortPlayers(Object.values(room.players||{}));
+    const er=room.lastEmoji||null;
+    if(er&&er.key!==lastEmojiKey){lastEmojiKey=er.key;showEmojiToast(er.emoji,er.name);}
     if(room.status==='waiting')renderWaiting(players,room.mode,code,room);
     else if(room.status==='playing')handleGameUpdate(players,room);
     else if(room.status==='finished')window.showWin(room.winner,room);
@@ -424,16 +422,8 @@ function saveSession(){localStorage.setItem('ludo_session',JSON.stringify({myUid
 window.sendEmoji=async function(emoji){
   if(!roomCode||!myUid)return;
   getACtx();
-  const payload={type:'emoji',emoji:normalizeEmoji(emoji),name:myName,uid:myUid,key:myUid+'-'+Date.now(),roomCode,at:Date.now()};
-  lastEmojiKey=payload.key;
-  showEmojiToast(payload.emoji,payload.name);
-  if(window.sendPeerEmoji)window.sendPeerEmoji(payload);
-};
-
-window.receivePeerEmoji=function(payload){
-  if(!payload||payload.type!=='emoji'||payload.roomCode!==roomCode||payload.uid===myUid||payload.key===lastEmojiKey)return;
-  lastEmojiKey=payload.key;
-  showEmojiToast(payload.emoji,payload.name);
+  const key=myUid+'-'+Date.now();
+  await update(ref(db,'games/'+roomCode),{lastEmoji:{emoji:normalizeEmoji(emoji),name:myName,uid:myUid,key,at:Date.now()}});
 };
 
 function showEmojiToast(emoji,name){
@@ -461,18 +451,10 @@ window.createRoom=async function(){
   if(!rName){if(err)err.textContent='Please enter a room name.';return;}
   window.setBtnLoad('create-btn',true,'Create Room');
   myUid=Math.random().toString(36).slice(2,9)+Date.now().toString(36);
-  myName=name;myColor=COLORS.includes(window.selectedColor)?window.selectedColor:'red';
+  if(window.initVoiceChat) window.initVoiceChat(myUid);
+  myName=name;myColor=COLORS.includes(window.selectedColor)?window.selectedColor:'red';roomCode=Math.random().toString(36).slice(2,6).toUpperCase();
   try{
-    let createdCode='';
-    for(let attempt=0;attempt<8&&!createdCode;attempt++){
-      const nextCode=makeRoomCode();
-      const roomData={name:rName,mode:safeMode(),status:'waiting',createdAt:Date.now(),hostUid:myUid,players:{[myUid]:{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true,lastSeen:Date.now()}},goties:makeInitialGoties(),winners:[],currentTurn:myColor,turnStartTime:Date.now(),sixCounts:makeSixCounts(),pendingMove:null};
-      const tx=await runTransaction(ref(db,'games/'+nextCode),current=>current?undefined:roomData,{applyLocally:false});
-      if(tx.committed)createdCode=nextCode;
-    }
-    if(!createdCode)throw new Error('Could not reserve room code');
-    roomCode=createdCode;
-    if(window.initVoiceChat) window.initVoiceChat(myUid);
+    await set(ref(db,'games/'+roomCode),{name:rName,mode:safeMode(),status:'waiting',createdAt:Date.now(),hostUid:myUid,players:{[myUid]:{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true,lastSeen:Date.now()}},goties:makeInitialGoties(),winners:[],currentTurn:myColor,turnStartTime:Date.now(),sixCounts:makeSixCounts(),pendingMove:null});
     saveSession();
     await setupPresence();
     window.setBtnLoad('create-btn',false,'Create Room');
@@ -492,29 +474,25 @@ window.joinRoom=async function(){
   if(!rCode){if(err)err.textContent='Please enter a room code.';return;}
   window.setBtnLoad('join-btn',true,'Join Room');
   try{
-    const newUid=Math.random().toString(36).slice(2,9)+Date.now().toString(36);
-    let joinError='Could not join room.';
-    const tx=await runTransaction(ref(db,'games/'+rCode),room=>{
-      if(!room){joinError='Room not found.';return;}
-      if(room.status!=='waiting'){joinError='Game already started.';return;}
-      const mode=room.mode||'1v1';
-      const playersObj={...(room.players||{})};
-      Object.keys(playersObj).forEach(uid=>{if(playersObj[uid]?.isOnline===false)delete playersObj[uid];});
-      const fresh=sortPlayers(Object.values(playersObj)).filter(p=>p&&p.isOnline!==false&&COLORS.includes(p.color));
-      if(fresh.length>=getSlots(mode)){joinError='Room is full.';return;}
-      const picked=pickAvailableColor(mode,fresh,window.selectedJoinColor,newUid);
-      if(!picked){joinError='No color available.';return;}
-      playersObj[newUid]={uid:newUid,name,color:picked,joinedAt:Date.now(),isOnline:true,lastSeen:Date.now()};
-      room.players=playersObj;
-      joinError='';
-      return room;
-    },{applyLocally:false});
-    if(!tx.committed){if(err)err.textContent=joinError;window.setBtnLoad('join-btn',false,'Join Room');await refreshJoinRoomPreview();return;}
-    const joined=tx.snapshot.val()?.players?.[newUid];
-    if(!joined?.color){if(err)err.textContent='Could not reserve color.';window.setBtnLoad('join-btn',false,'Join Room');await refreshJoinRoomPreview();return;}
-    myUid=newUid;
+    const snap=await get(ref(db,'games/'+rCode));
+    const room=snap.val();
+    if(!room){if(err)err.textContent='Room not found.';window.setBtnLoad('join-btn',false,'Join Room');return;}
+    if(room.status!=='waiting'){if(err)err.textContent='Game already started.';window.setBtnLoad('join-btn',false,'Join Room');return;}
+    const mode=room.mode||'1v1';
+    const colors=slotColors(mode);
+    const players=sortPlayers(Object.values(room.players||{}));
+    const stale=players.filter(p=>p.isOnline===false&&(Date.now()-(p.lastSeen||0)>10000));
+    for(const p of stale){if(p.uid)await remove(ref(db,'games/'+rCode+'/players/'+p.uid));}
+    const remainingPlayers=players.filter(p=>!stale.some(s=>s.uid===p.uid));
+    if(remainingPlayers.length>=getSlots(mode)){if(err)err.textContent='Room is full.';window.setBtnLoad('join-btn',false,'Join Room');return;}
+    const used=new Set(remainingPlayers.map(p=>p.color));
+    const available=colors.filter(c=>!used.has(c));
+    const picked=COLORS.includes(window.selectedJoinColor)&&available.includes(window.selectedJoinColor)?window.selectedJoinColor:available[0];
+    if(!picked){if(err)err.textContent='No color available.';window.setBtnLoad('join-btn',false,'Join Room');return;}
+    myUid=Math.random().toString(36).slice(2,9)+Date.now().toString(36);
     if(window.initVoiceChat) window.initVoiceChat(myUid);
-    myName=name;myColor=joined.color;roomCode=rCode;
+    myName=name;myColor=picked;roomCode=rCode;
+    await set(ref(db,'games/'+rCode+'/players/'+myUid),{uid:myUid,name:myName,color:myColor,joinedAt:Date.now(),isOnline:true,lastSeen:Date.now()});
     saveSession();
     await setupPresence();
     window.setBtnLoad('join-btn',false,'Join Room');
@@ -583,9 +561,9 @@ function renderWaiting(players,mode,rCode,room){
   const list=document.getElementById('players-list');
   list.innerHTML='';
   const maxSlots=getSlots(mode);
-  const onlinePlayers=getOnlinePlayers(players).filter(p=>p&&COLORS.includes(p.color));
+  const allRoomPlayers=players.filter(p=>p&&COLORS.includes(p.color));
   for(let i=0;i<maxSlots;i++){
-    const p=onlinePlayers[i]||null;
+    const p=allRoomPlayers[i]||null;
     const slot=document.createElement('div');
     slot.className='player-slot'+(p?' filled':'')+(p&&p.isOnline===false?' offline':'');
     const dot=document.createElement('div');
@@ -602,14 +580,14 @@ function renderWaiting(players,mode,rCode,room){
     }
     list.appendChild(slot);
   }
-  const availableForMe=getAvailableColors(mode,onlinePlayers,myUid);
-  const changeColors=COLORS.filter(c=>c===myColor||availableForMe.includes(c));
+  const used=new Set(allRoomPlayers.map(p=>p.color));
+  const changeColors=COLORS.filter(c=>!used.has(c)||c===myColor);
   if(window.renderWaitingAvailableColors)window.renderWaitingAvailableColors(changeColors,myColor);
   const wt=document.getElementById('waiting-text');
-  if(onlinePlayers.length>=maxSlots){
+  if(allRoomPlayers.length>=maxSlots){
     wt.textContent='All players joined! Starting…';
     if((room?.hostUid||players[0]?.uid)===myUid)setTimeout(startGame,1200);
-  }else wt.textContent='Waiting for players… ('+onlinePlayers.length+'/'+maxSlots+')';
+  }else wt.textContent='Waiting for players… ('+allRoomPlayers.length+'/'+maxSlots+')';
 }
 
 async function startGame(){
@@ -633,7 +611,7 @@ async function checkGameRules(room,players){
   if(room.pendingMove&&room.pendingMove.color===room.currentTurn&&currentPlayer)setTurnText(getSafePlayerName(currentPlayer,room.currentTurn)+' rolled '+room.pendingMove.roll+' — pick a goti ('+timeLeft+'s)');
   else if(currentPlayer)setTurnText(getSafePlayerName(currentPlayer,room.currentTurn)+'\'s Turn ('+timeLeft+'s)');
   let shouldPass=false;
-  if(!currentPlayer||currentPlayer.isOnline===false)shouldPass=true;
+  if(!currentPlayer)shouldPass=true;
   if(elapsed>20000)shouldPass=true;
   if(isHost&&shouldPass&&!window.isPassingTurn){
     window.isPassingTurn=true;
@@ -680,7 +658,7 @@ function handleGameUpdate(players,room){
         isAnimating=false;
         const saved=pendingGameState;
         pendingGameState=null;
-        if(saved)renderGame(saved.players,saved.room,saved.playerMap);
+        if(saved)handleGameUpdate(saved.players,saved.room);
         else renderGame(players,room,playerMap);
       });
       return;
@@ -939,6 +917,8 @@ function secureDiceRoll(){
 }
 
 function setupBottomDice(){
+  if(window.diceListenerSetupDone)return;
+  window.diceListenerSetupDone=true;
   const bdw=document.getElementById('bottom-dice-wrap');
   const cube=document.getElementById('bottom-dice-cube');
   if(!bdw||!cube)return;
@@ -956,10 +936,7 @@ function setupBottomDice(){
     const evKey=myUid+'-'+Date.now();
     await update(ref(db,'games/'+roomCode),{lastEvent:{type:'dice',color:colorName,value:val,uid:myUid,key:evKey,at:Date.now()}});
     cube.style.setProperty('--df',FACE_T[val]);cube.classList.remove('spinning');void cube.offsetWidth;cube.classList.add('spinning');
-    let finalized=false;
-    const finalizeRoll=async()=>{
-      if(finalized)return;
-      finalized=true;
+    cube.addEventListener('animationend',async()=>{
       cube.classList.remove('spinning');cube.style.transform=FACE_T[val];rolling=false;bdw.classList.add('disabled');
       const snap2=await get(ref(db,'games/'+roomCode));const room2=snap2.val();if(!room2||room2.currentTurn!==colorName||room2.pendingMove)return;
       const goties=room2.goties||{},gtArr=goties[colorName]||[];
@@ -984,9 +961,7 @@ function setupBottomDice(){
       await update(ref(db,'games/'+roomCode),{pendingMove:{uid:myUid,color:colorName,roll:val,key:evKey,at:Date.now()},turnStartTime:Date.now(),sixCounts,lastRoll:{uid:myUid,color:colorName,value:val,at:Date.now()}});
       const playerMap={};players.forEach(p=>{if(p&&p.color)playerMap[p.color]=p;});
       applyTurn(colorName,playerMap,goties,val,room2);
-    };
-    cube.addEventListener('animationend',finalizeRoll,{once:true});
-    setTimeout(finalizeRoll,1000);
+    },{once:true});
   });
 }
 
@@ -1026,15 +1001,12 @@ function buildBoard(){
 window.changeWaitingColor=async function(color){
   if(!roomCode||!myUid||!COLORS.includes(color)||color===myColor)return;
   try{
-    const tx=await runTransaction(ref(db,'games/'+roomCode),room=>{
-      if(!room||room.status!=='waiting'||!room.players?.[myUid])return;
-      const players=Object.values(room.players||{});
-      const available=getAvailableColors(room.mode||'1v1',players,myUid);
-      if(!available.includes(color))return;
-      room.players[myUid]={...room.players[myUid],color,lastSeen:Date.now()};
-      return room;
-    },{applyLocally:false});
-    if(!tx.committed)return;
+    const snap=await get(ref(db,'games/'+roomCode));
+    const room=snap.val();if(!room||room.status!=='waiting')return;
+    const players=sortPlayers(Object.values(room.players||{}));
+    const used=new Set(players.filter(p=>p.uid!==myUid).map(p=>p.color));
+    if(used.has(color))return;
+    await update(ref(db,'games/'+roomCode+'/players/'+myUid),{color,lastSeen:Date.now()});
     myColor=color;saveSession();
   }catch(e){}
 };
@@ -1051,9 +1023,10 @@ async function refreshJoinRoomPreview(){
     if(!room){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Room not found');return;}
     if(room.status!=='waiting'){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Game already started');return;}
     const players=sortPlayers(Object.values(room.players||{}));
-    const fresh=getOnlinePlayers(players);
-    if(fresh.length>=getSlots(room.mode)){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Room is full');return;}
-    const available=getAvailableColors(room.mode||'1v1',fresh,null);
+    const activePlayers=players.filter(p=>p&&p.color);
+    if(activePlayers.length>=getSlots(room.mode)){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Room is full');return;}
+    const used=new Set(activePlayers.map(p=>p.color));
+    const available=COLORS.filter(c=>!used.has(c));
     if(window.renderJoinAvailableColors)window.renderJoinAvailableColors(available,available.includes(window.selectedJoinColor)?window.selectedJoinColor:available[0],null);
     if(err)err.textContent='';
   }catch(e){if(window.renderJoinAvailableColors)window.renderJoinAvailableColors([],null,'Could not load room');}
