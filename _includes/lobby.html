@@ -136,25 +136,34 @@
     if(tab==='join'&&window.refreshJoinRoomPreview)window.refreshJoinRoomPreview();
   };
 
-  function renderColorGrid(id,colors,selected,clickFn,emptyText){
-    const grid=document.getElementById(id);
-    if(!grid)return;
-    grid.innerHTML='';
-    if(!colors||colors.length===0){
-      const empty=document.createElement('div');
-      empty.className='color-empty';
-      empty.textContent=emptyText||'No color available';
-      grid.appendChild(empty);
-      return;
-    }
-    colors.forEach(color=>{
-      const btn=document.createElement('button');
-      btn.type='button';
-      btn.className='color-btn '+color+(selected===color?' selected':'');
-      btn.textContent=lobbyColorNames[color]||color;
-      btn.onclick=()=>clickFn(color);
+  function renderColorGrid(id, availableColors, selected, clickFn, emptyText) {
+    const grid = document.getElementById(id);
+    if(!grid) return;
+    grid.innerHTML = '';
+    lobbyColors.forEach(color => {
+      const isAvailable = availableColors.includes(color);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      if (isAvailable) {
+        btn.className = 'color-btn ' + color + (selected === color ? ' selected' : '');
+        btn.onclick = () => clickFn(color);
+      } else {
+        btn.className = 'color-btn ' + color;
+        btn.style.opacity = '0.35';
+        btn.style.cursor = 'not-allowed';
+        btn.disabled = true;
+      }
+      btn.textContent = lobbyColorNames[color] || color;
       grid.appendChild(btn);
     });
+    if (availableColors.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'error-msg';
+      empty.style.gridColumn = '1 / -1';
+      empty.style.marginTop = '6px';
+      empty.textContent = emptyText || 'Room is full or no colors available';
+      grid.appendChild(empty);
+    }
   }
 
   window.selectCreateColor=function(color){
@@ -178,13 +187,13 @@
     if(selected&&window.lastJoinAvailableColors.includes(selected))window.selectedJoinColor=selected;
     else if(window.lastJoinAvailableColors.length)window.selectedJoinColor=window.lastJoinAvailableColors[0];
     else window.selectedJoinColor='';
-    renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'No color available');
+    renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'Enter room code to choose color');
   };
 
   window.renderWaitingAvailableColors=function(colors,selected){
     renderColorGrid('waiting-color-grid',colors,selected,color=>{
       if(window.changeWaitingColor)window.changeWaitingColor(color);
-    },'No color available');
+    },'All colors are taken');
   };
 
   document.querySelectorAll('.mode-btn').forEach(btn=>{
