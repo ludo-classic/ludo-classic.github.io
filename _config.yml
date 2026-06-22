@@ -6,7 +6,7 @@ url: "https://ludo-classic.github.io"
 lang: "en-IN"
 locale: "en_IN"
 
-image: "/assets/chat.png"
+image: "/assets/ludo.png"
 
 plugins:
   - jekyll-sitemap
