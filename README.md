@@ -1,4 +1,3 @@
-**Features** section:
 # 🎲 Ludo Classic – Multiplayer
 A modern, real-time multiplayer implementation of India's favorite board game, Ludo! Built with vanilla JavaScript, HTML, CSS, and powered by Firebase Realtime Database. This project is structured using Jekyll for clean, modular code maintenance.
 ## ✨ Features
