@@ -13,30 +13,57 @@
     display: none;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   }
+
   .audio-btn {
     background: transparent;
     border: none;
-    font-size: 1.18rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     color: var(--gold2);
     cursor: pointer;
     transition: all 0.2s;
-    position: relative;
     outline: none;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
   }
-  .audio-btn:hover { color: var(--gold); transform: scale(1.08); }
-  .audio-btn:active { transform: scale(0.92); }
-  .audio-btn.muted { color: #dc2626; }
-  .audio-btn.muted::after {
+
+  .audio-btn:hover {
+    color: var(--gold);
+    transform: scale(1.06);
+  }
+
+  .audio-btn:active {
+    transform: scale(0.94);
+  }
+
+  .audio-btn.muted {
+    color: #dc2626;
+  }
+
+  .audio-btn .icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.0rem;
+  }
+
+  .audio-btn.muted .icon-wrap::after {
     content: '';
     position: absolute;
     top: 50%;
-    left: -4px;
-    right: -4px;
+    left: -3px;
+    right: -3px;
     height: 2px;
     background: #dc2626;
     transform: translateY(-50%) rotate(45deg);
     border-radius: 2px;
   }
+
   .voice-menu-overlay {
     position: fixed;
     top: 50%;
@@ -46,12 +73,13 @@
     background: #ffffff;
     border: 2px solid var(--gold);
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     z-index: 10000;
     padding: 16px;
     font-family: 'Rajdhani', sans-serif;
     color: var(--gold2);
   }
+
   .voice-menu-header {
     display: flex;
     justify-content: space-between;
@@ -60,6 +88,7 @@
     padding-bottom: 8px;
     margin-bottom: 12px;
   }
+
   .voice-menu-header span {
     font-weight: 700;
     font-size: 1.1rem;
@@ -67,6 +96,7 @@
     letter-spacing: 1px;
     color: var(--gold);
   }
+
   .close-voice-btn {
     background: none;
     border: none;
@@ -76,13 +106,16 @@
     line-height: 1;
     transition: color 0.2s;
   }
+
   .close-voice-btn:hover {
     color: var(--gold);
   }
+
   .voice-players-list {
     max-height: 240px;
     overflow-y: auto;
   }
+
   .voice-player-item {
     display: flex;
     justify-content: space-between;
@@ -94,25 +127,30 @@
     background: #fdfdfd;
     transition: all 0.2s;
   }
+
   .voice-player-item:hover {
     background: #f8fafc;
     border-color: var(--gold);
   }
+
   .voice-player-info {
     display: flex;
     align-items: center;
     gap: 8px;
   }
+
   .voice-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
   }
+
   .voice-player-name {
     font-weight: 600;
     font-size: 0.95rem;
     color: var(--gold2);
   }
+
   .voice-mute-btn {
     background: transparent;
     border: none;
@@ -127,10 +165,12 @@
     border-radius: 50%;
     transition: all 0.2s;
   }
+
   .voice-mute-btn:hover {
     background: #f1f5f9;
     color: var(--gold);
   }
+
   .voice-mute-btn.muted {
     color: #dc2626;
     background: #fee2e2;
@@ -138,10 +178,10 @@
 </style>
 
 <div class="audio-bar-wrapper" id="audio-bar-wrapper">
-  <button class="audio-btn" id="btn-bgm" onclick="window.toggleBGM()"><i class="fas fa-music"></i></button>
-  <button class="audio-btn" id="btn-sfx" onclick="window.toggleSFX()"><i class="fas fa-volume-up"></i></button>
-  <button class="audio-btn muted" id="btn-mic" onclick="window.toggleMic()"><i class="fas fa-microphone"></i></button>
-  <button class="audio-btn" id="btn-speaker" onclick="window.toggleVoiceMenu()"><i class="fas fa-headphones"></i></button>
+  <button class="audio-btn" id="btn-bgm" onclick="window.toggleBGM()"><span class="icon-wrap"><i class="fas fa-music"></i></span> <span>MSC</span></button>
+  <button class="audio-btn" id="btn-sfx" onclick="window.toggleSFX()"><span class="icon-wrap"><i class="fas fa-volume-up"></i></span> <span>SFX</span></button>
+  <button class="audio-btn muted" id="btn-mic" onclick="window.toggleMic()"><span class="icon-wrap"><i class="fas fa-microphone"></i></span> <span>MIC</span></button>
+  <button class="audio-btn" id="btn-speaker" onclick="window.toggleVoiceMenu()"><span class="icon-wrap"><i class="fas fa-headphones"></i></span> <span>SPKR</span></button>
 </div>
 
 <div class="voice-menu-overlay" id="voice-menu-overlay" style="display: none;">
@@ -153,237 +193,237 @@
 </div>
 
 <script>
-window.isBgmEnabled = true;
-window.isSfxEnabled = true;
-window.isMicEnabled = false;
-
-window.lastVoicePlayers = [];
-window.lastVoiceMyUid = '';
-
-let myPeer = null;
-let myLocalStream = null;
-const connectedPeers = {};
-const remoteAudioElements = {};
-const localMutedPlayers = {};
-const voicePlayerCache = {};
-
-const COLOR_HEX = { red: '#c62828', green: '#2e7d32', yellow: '#f9a825', blue: '#1565c0' };
-
-function safeVoiceName(player, fallback) {
-  const raw = player && (player.name || player.displayName || player.username || player.nick);
-  const name = String(raw || '').trim();
-  if (name) return name;
-  const uid = String((player && player.uid) || fallback || '').trim();
-  return uid ? 'Player ' + uid.slice(0, 4) : 'Player';
-}
-
-function getVoiceUid(player) {
-  return String((player && player.uid) || '').trim();
-}
-
-async function ensureMicStream() {
-  if (myLocalStream) return myLocalStream;
-  try {
-    myLocalStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-    const track = myLocalStream.getAudioTracks()[0];
-    if (track) track.enabled = window.isMicEnabled;
-  } catch (err) {
-    myLocalStream = null;
-  }
-  return myLocalStream;
-}
-
-window.toggleBGM = function() {
-  window.isBgmEnabled = !window.isBgmEnabled;
-  const btn = document.getElementById('btn-bgm');
-  if (btn) btn.classList.toggle('muted', !window.isBgmEnabled);
-  const bgm = document.getElementById('bgm-snd');
-  if (!bgm) return;
-  if (!window.isBgmEnabled) {
-    bgm.pause();
-  } else if (document.getElementById('game-screen')?.classList.contains('active')) {
-    bgm.play().catch(()=>{});
-  }
-};
-
-window.toggleSFX = function() {
-  window.isSfxEnabled = !window.isSfxEnabled;
-  const btn = document.getElementById('btn-sfx');
-  if (btn) btn.classList.toggle('muted', !window.isSfxEnabled);
-};
-
-
-
-window.initVoiceChat = async function(myUid) {
-  if (myPeer) return;
-  await ensureMicStream();
-  myPeer = new Peer(myUid, { debug: 0 });
-  myPeer.on('error', err => {
-    console.error('PeerJS error:', err);
-  });
-  myPeer.on('call', async call => {
-    await ensureMicStream();
-    try {
-      if (myLocalStream) call.answer(myLocalStream);
-      else call.answer();
-    } catch (err) {}
-    handleRemoteCall(call);
-  });
-};
-
-window.toggleMic = async function() {
-  await ensureMicStream();
-  if (!myLocalStream) return;
-  window.isMicEnabled = !window.isMicEnabled;
-  myLocalStream.getAudioTracks().forEach(track => track.enabled = window.isMicEnabled);
-  const btn = document.getElementById('btn-mic');
-  if (btn) btn.classList.toggle('muted', !window.isMicEnabled);
-  if (window.syncVoicePeers && window.lastVoicePlayers) {
-    window.syncVoicePeers(window.lastVoicePlayers, window.lastVoiceMyUid);
-  }
-};
-
-window.toggleVoiceMenu = function() {
-  const overlay = document.getElementById('voice-menu-overlay');
-  if (!overlay) return;
-  const isHidden = overlay.style.display === 'none';
-  overlay.style.display = isHidden ? 'block' : 'none';
-  if (isHidden) {
-    window.updateVoiceMenu();
-  }
-};
-
-window.updateVoiceMenu = function() {
-  const container = document.getElementById('voice-players-list');
-  if (!container) return;
-  container.innerHTML = '';
-  
-  const players = window.lastVoicePlayers || [];
-  const myId = String(window.lastVoiceMyUid || '').trim();
-  const otherPlayers = players.filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
-  
-  if (otherPlayers.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.9rem;padding:12px;">No other players in room</div>';
-    return;
-  }
-  
-  otherPlayers.forEach(p => {
-    const uid = getVoiceUid(p);
-    const name = safeVoiceName(p, uid);
-    const isMuted = !!localMutedPlayers[uid];
-    const isOnline = p.isOnline !== false;
-    const color = p.color || '';
-    const colorDotStyle = color && COLOR_HEX[color] ? `background:${COLOR_HEX[color]}` : 'background:#64748b';
-    
-    const item = document.createElement('div');
-    item.className = 'voice-player-item';
-    
-    const info = document.createElement('div');
-    info.className = 'voice-player-info';
-    
-    const dot = document.createElement('div');
-    dot.className = 'voice-dot';
-    dot.style.cssText = colorDotStyle;
-    
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'voice-player-name';
-    nameSpan.textContent = name + (!isOnline ? ' (Offline)' : '');
-    if (!isOnline) {
-      nameSpan.style.color = '#94a3b8';
-    }
-    
-    info.appendChild(dot);
-    info.appendChild(nameSpan);
-    
-    const muteBtn = document.createElement('button');
-    muteBtn.id = 'btn-mute-' + uid;
-    muteBtn.className = 'voice-mute-btn' + (isMuted ? ' muted' : '');
-    muteBtn.onclick = () => window.togglePlayerMute(uid);
-    muteBtn.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
-    
-    item.appendChild(info);
-    item.appendChild(muteBtn);
-    container.appendChild(item);
-  });
-};
-
-window.togglePlayerMute = function(targetUid) {
-  targetUid = String(targetUid || '').trim();
-  if (!targetUid) return;
-  localMutedPlayers[targetUid] = !localMutedPlayers[targetUid];
-  if (remoteAudioElements[targetUid]) remoteAudioElements[targetUid].muted = !!localMutedPlayers[targetUid];
-  window.updateVoiceMenu();
-};
-
-function handleRemoteCall(call) {
-  const targetUid = String(call.peer || '').trim();
-  if (!targetUid) return;
-  connectedPeers[targetUid] = call;
-  call.on('stream', remoteStream => {
-    if (!remoteAudioElements[targetUid]) {
-      const audio = document.createElement('audio');
-      audio.autoplay = true;
-      audio.id = 'remote-audio-' + targetUid;
-      audio.muted = !!localMutedPlayers[targetUid];
-      document.body.appendChild(audio);
-      remoteAudioElements[targetUid] = audio;
-    }
-    remoteAudioElements[targetUid].srcObject = remoteStream;
-  });
-  call.on('close', () => cleanupRemote(targetUid));
-  call.on('error', () => cleanupRemote(targetUid));
-}
-
-function cleanupRemote(targetUid) {
-  targetUid = String(targetUid || '').trim();
-  if (!targetUid) return;
-  if (remoteAudioElements[targetUid]) {
-    remoteAudioElements[targetUid].remove();
-    delete remoteAudioElements[targetUid];
-  }
-  if (connectedPeers[targetUid]) {
-    try { connectedPeers[targetUid].close(); } catch (err) {}
-    delete connectedPeers[targetUid];
-  }
-}
-
-window.syncVoicePeers = async function(players, myUid) {
-  window.lastVoicePlayers = players;
-  window.lastVoiceMyUid = myUid;
-  const myId = String(myUid || '').trim();
-  const onlinePlayers = (Array.isArray(players) ? players : []).filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
-  const activeUids = new Set(onlinePlayers.map(getVoiceUid));
-  Object.keys(connectedPeers).forEach(uid => { if (!activeUids.has(uid)) cleanupRemote(uid); });
-  onlinePlayers.forEach(p => {
-    const uid = getVoiceUid(p);
-    voicePlayerCache[uid] = p;
-    if (myPeer && myLocalStream && !connectedPeers[uid] && myId < uid) {
-      try {
-        const call = myPeer.call(uid, myLocalStream);
-        if (call) handleRemoteCall(call);
-      } catch (err) {}
-    }
-  });
-  window.updateVoiceMenu();
-};
-
-window.closeVoiceChat = function() {
-  Object.keys(connectedPeers).forEach(cleanupRemote);
-  if (myPeer) {
-    try { myPeer.destroy(); } catch (err) {}
-  }
-  if (myLocalStream) {
-    myLocalStream.getTracks().forEach(track => track.stop());
-  }
-  Object.keys(remoteAudioElements).forEach(uid => {
-    if (remoteAudioElements[uid]) remoteAudioElements[uid].remove();
-    delete remoteAudioElements[uid];
-  });
-  Object.keys(voicePlayerCache).forEach(uid => delete voicePlayerCache[uid]);
-  myPeer = null;
-  myLocalStream = null;
+  window.isBgmEnabled = true;
+  window.isSfxEnabled = true;
   window.isMicEnabled = false;
-  const btn = document.getElementById('btn-mic');
-  if (btn) btn.classList.add('muted');
-};
+
+  window.lastVoicePlayers = [];
+  window.lastVoiceMyUid = '';
+
+  let myPeer = null;
+  let myLocalStream = null;
+  const connectedPeers = {};
+  const remoteAudioElements = {};
+  const localMutedPlayers = {};
+  const voicePlayerCache = {};
+
+  const COLOR_HEX = { red: '#c62828', green: '#2e7d32', yellow: '#f9a825', blue: '#1565c0' };
+
+  function safeVoiceName(player, fallback) {
+    const raw = player && (player.name || player.displayName || player.username || player.nick);
+    const name = String(raw || '').trim();
+    if (name) return name;
+    const uid = String((player && player.uid) || fallback || '').trim();
+    return uid ? 'Player ' + uid.slice(0, 4) : 'Player';
+  }
+
+  function getVoiceUid(player) {
+    return String((player && player.uid) || '').trim();
+  }
+
+  async function ensureMicStream() {
+    if (myLocalStream) return myLocalStream;
+    try {
+      myLocalStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+      const track = myLocalStream.getAudioTracks()[0];
+      if (track) track.enabled = window.isMicEnabled;
+    } catch (err) {
+      myLocalStream = null;
+    }
+    return myLocalStream;
+  }
+
+  window.toggleBGM = function () {
+    window.isBgmEnabled = !window.isBgmEnabled;
+    const btn = document.getElementById('btn-bgm');
+    if (btn) btn.classList.toggle('muted', !window.isBgmEnabled);
+    const bgm = document.getElementById('bgm-snd');
+    if (!bgm) return;
+    if (!window.isBgmEnabled) {
+      bgm.pause();
+    } else if (document.getElementById('game-screen')?.classList.contains('active')) {
+      bgm.play().catch(() => { });
+    }
+  };
+
+  window.toggleSFX = function () {
+    window.isSfxEnabled = !window.isSfxEnabled;
+    const btn = document.getElementById('btn-sfx');
+    if (btn) btn.classList.toggle('muted', !window.isSfxEnabled);
+  };
+
+
+
+  window.initVoiceChat = async function (myUid) {
+    if (myPeer) return;
+    await ensureMicStream();
+    myPeer = new Peer(myUid, { debug: 0 });
+    myPeer.on('error', err => {
+      console.error('PeerJS error:', err);
+    });
+    myPeer.on('call', async call => {
+      await ensureMicStream();
+      try {
+        if (myLocalStream) call.answer(myLocalStream);
+        else call.answer();
+      } catch (err) { }
+      handleRemoteCall(call);
+    });
+  };
+
+  window.toggleMic = async function () {
+    await ensureMicStream();
+    if (!myLocalStream) return;
+    window.isMicEnabled = !window.isMicEnabled;
+    myLocalStream.getAudioTracks().forEach(track => track.enabled = window.isMicEnabled);
+    const btn = document.getElementById('btn-mic');
+    if (btn) btn.classList.toggle('muted', !window.isMicEnabled);
+    if (window.syncVoicePeers && window.lastVoicePlayers) {
+      window.syncVoicePeers(window.lastVoicePlayers, window.lastVoiceMyUid);
+    }
+  };
+
+  window.toggleVoiceMenu = function () {
+    const overlay = document.getElementById('voice-menu-overlay');
+    if (!overlay) return;
+    const isHidden = overlay.style.display === 'none';
+    overlay.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+      window.updateVoiceMenu();
+    }
+  };
+
+  window.updateVoiceMenu = function () {
+    const container = document.getElementById('voice-players-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const players = window.lastVoicePlayers || [];
+    const myId = String(window.lastVoiceMyUid || '').trim();
+    const otherPlayers = players.filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
+
+    if (otherPlayers.length === 0) {
+      container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.9rem;padding:12px;">No other players in room</div>';
+      return;
+    }
+
+    otherPlayers.forEach(p => {
+      const uid = getVoiceUid(p);
+      const name = safeVoiceName(p, uid);
+      const isMuted = !!localMutedPlayers[uid];
+      const isOnline = p.isOnline !== false;
+      const color = p.color || '';
+      const colorDotStyle = color && COLOR_HEX[color] ? `background:${COLOR_HEX[color]}` : 'background:#64748b';
+
+      const item = document.createElement('div');
+      item.className = 'voice-player-item';
+
+      const info = document.createElement('div');
+      info.className = 'voice-player-info';
+
+      const dot = document.createElement('div');
+      dot.className = 'voice-dot';
+      dot.style.cssText = colorDotStyle;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'voice-player-name';
+      nameSpan.textContent = name + (!isOnline ? ' (Offline)' : '');
+      if (!isOnline) {
+        nameSpan.style.color = '#94a3b8';
+      }
+
+      info.appendChild(dot);
+      info.appendChild(nameSpan);
+
+      const muteBtn = document.createElement('button');
+      muteBtn.id = 'btn-mute-' + uid;
+      muteBtn.className = 'voice-mute-btn' + (isMuted ? ' muted' : '');
+      muteBtn.onclick = () => window.togglePlayerMute(uid);
+      muteBtn.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+
+      item.appendChild(info);
+      item.appendChild(muteBtn);
+      container.appendChild(item);
+    });
+  };
+
+  window.togglePlayerMute = function (targetUid) {
+    targetUid = String(targetUid || '').trim();
+    if (!targetUid) return;
+    localMutedPlayers[targetUid] = !localMutedPlayers[targetUid];
+    if (remoteAudioElements[targetUid]) remoteAudioElements[targetUid].muted = !!localMutedPlayers[targetUid];
+    window.updateVoiceMenu();
+  };
+
+  function handleRemoteCall(call) {
+    const targetUid = String(call.peer || '').trim();
+    if (!targetUid) return;
+    connectedPeers[targetUid] = call;
+    call.on('stream', remoteStream => {
+      if (!remoteAudioElements[targetUid]) {
+        const audio = document.createElement('audio');
+        audio.autoplay = true;
+        audio.id = 'remote-audio-' + targetUid;
+        audio.muted = !!localMutedPlayers[targetUid];
+        document.body.appendChild(audio);
+        remoteAudioElements[targetUid] = audio;
+      }
+      remoteAudioElements[targetUid].srcObject = remoteStream;
+    });
+    call.on('close', () => cleanupRemote(targetUid));
+    call.on('error', () => cleanupRemote(targetUid));
+  }
+
+  function cleanupRemote(targetUid) {
+    targetUid = String(targetUid || '').trim();
+    if (!targetUid) return;
+    if (remoteAudioElements[targetUid]) {
+      remoteAudioElements[targetUid].remove();
+      delete remoteAudioElements[targetUid];
+    }
+    if (connectedPeers[targetUid]) {
+      try { connectedPeers[targetUid].close(); } catch (err) { }
+      delete connectedPeers[targetUid];
+    }
+  }
+
+  window.syncVoicePeers = async function (players, myUid) {
+    window.lastVoicePlayers = players;
+    window.lastVoiceMyUid = myUid;
+    const myId = String(myUid || '').trim();
+    const onlinePlayers = (Array.isArray(players) ? players : []).filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
+    const activeUids = new Set(onlinePlayers.map(getVoiceUid));
+    Object.keys(connectedPeers).forEach(uid => { if (!activeUids.has(uid)) cleanupRemote(uid); });
+    onlinePlayers.forEach(p => {
+      const uid = getVoiceUid(p);
+      voicePlayerCache[uid] = p;
+      if (myPeer && myLocalStream && !connectedPeers[uid] && myId < uid) {
+        try {
+          const call = myPeer.call(uid, myLocalStream);
+          if (call) handleRemoteCall(call);
+        } catch (err) { }
+      }
+    });
+    window.updateVoiceMenu();
+  };
+
+  window.closeVoiceChat = function () {
+    Object.keys(connectedPeers).forEach(cleanupRemote);
+    if (myPeer) {
+      try { myPeer.destroy(); } catch (err) { }
+    }
+    if (myLocalStream) {
+      myLocalStream.getTracks().forEach(track => track.stop());
+    }
+    Object.keys(remoteAudioElements).forEach(uid => {
+      if (remoteAudioElements[uid]) remoteAudioElements[uid].remove();
+      delete remoteAudioElements[uid];
+    });
+    Object.keys(voicePlayerCache).forEach(uid => delete voicePlayerCache[uid]);
+    myPeer = null;
+    myLocalStream = null;
+    window.isMicEnabled = false;
+    const btn = document.getElementById('btn-mic');
+    if (btn) btn.classList.add('muted');
+  };
 </script>
