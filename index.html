@@ -16,7 +16,8 @@ description: "Play India's favorite board game online! Create private rooms to p
   --ds:38px;--pb:#ffffff;--pbr:#e2e8f0;
   --goti-size:28px;
 }
-body{background:var(--bg);color:#1e293b;min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:#1e293b;min-height:100vh;display:flex;flex-direction:column;align-items:center;font-family:'Rajdhani',sans-serif;overflow-x:hidden;}
 
 .screen{display:none;width:100%;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:28px 16px;}
 .screen.active{display:flex;}
@@ -556,33 +557,37 @@ function renderWaiting(players,mode,rCode,room){
   window.showScreen('waiting-screen');
   document.getElementById('display-room-code').textContent=rCode;
   document.getElementById('display-mode').textContent={'1v1':'1 vs 1','2v2':'2 vs 2','ffa':'Free For All'}[mode]||mode;
-  const colors=slotColors(mode);
-  const list=document.getElementById('players-list');list.innerHTML='';
-  colors.forEach(color=>{
-    const p=getPlayerByColor(players,color);
+  const list=document.getElementById('players-list');
+  list.innerHTML='';
+  const maxSlots=getSlots(mode);
+  const onlinePlayers=getOnlinePlayers(players);
+  for(let i=0;i<maxSlots;i++){
+    const p=onlinePlayers[i];
     const slot=document.createElement('div');
-    slot.className='player-slot'+(p?' filled':'')+(p&&p.isOnline===false?' offline':'');
-    const dot=document.createElement('div');dot.className='player-color-dot';
-    dot.style.background={red:'#c62828',green:'#2e7d32',yellow:'#f9a825',blue:'#1565c0'}[color];
-    const nm=document.createElement('div');nm.className='player-name-w'+(p?'':' empty');
-    nm.textContent=p?(p.isOnline===false?p.name+' (Offline)':p.name):color.charAt(0).toUpperCase()+color.slice(1)+' available';
-    slot.appendChild(dot);slot.appendChild(nm);
+    slot.className='player-slot'+(p?' filled':'');
+    const dot=document.createElement('div');
+    dot.className='player-color-dot';
+    if(p)dot.style.background={red:'#c62828',green:'#2e7d32',yellow:'#f9a825',blue:'#1565c0'}[p.color];
+    else dot.style.background='rgba(0,0,0,0.08)';
+    const nm=document.createElement('div');
+    nm.className='player-name-w'+(p?'':' empty');
+    nm.textContent=p?(p.isOnline===false?p.name+' (Offline)':p.name):'Waiting for player...';
+    slot.appendChild(dot);
+    slot.appendChild(nm);
     if(p){
       if(p.uid===myUid){const y=document.createElement('span');y.className='player-you-tag';y.textContent='YOU';slot.appendChild(y);}
       if((room?.hostUid||players[0]?.uid)===p.uid){const h=document.createElement('span');h.className='host-tag';h.textContent='HOST';slot.appendChild(h);}
     }
     list.appendChild(slot);
-  });
-  const onlinePlayers=getOnlinePlayers(players).filter(p=>COLORS.includes(p.color));
+  }
   const used=new Set(onlinePlayers.map(p=>p.color));
   const changeColors=COLORS.filter(c=>!used.has(c)||c===myColor);
   if(window.renderWaitingAvailableColors)window.renderWaitingAvailableColors(changeColors,myColor);
   const wt=document.getElementById('waiting-text');
-  const need=getSlots(mode);
-  if(onlinePlayers.length>=need){
+  if(onlinePlayers.length>=maxSlots){
     wt.textContent='All players joined! Starting…';
     if((room?.hostUid||players[0]?.uid)===myUid)setTimeout(startGame,1200);
-  }else wt.textContent='Waiting for players… ('+onlinePlayers.length+'/'+need+')';
+  }else wt.textContent='Waiting for players… ('+onlinePlayers.length+'/'+maxSlots+')';
 }
 
 async function startGame(){
@@ -972,7 +977,7 @@ function buildBoard(){
     if(c===7&&r>=1&&r<=5)return'f-g';
     if(r===7&&c>=9&&c<=13)return'f-b';
     if(c===7&&r>=9&&r<=13)return'f-y';
-    const k=r+r+','+c;if(SS.has(k))return'safe';
+    const k=r+','+c;if(SS.has(k))return'safe';
     return'p';
   };
   COLORS.forEach(color=>{
