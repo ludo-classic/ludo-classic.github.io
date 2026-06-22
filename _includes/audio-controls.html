@@ -37,12 +37,119 @@
     transform: translateY(-50%) rotate(45deg);
     border-radius: 2px;
   }
+  .voice-menu-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px;
+    background: #ffffff;
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    z-index: 10000;
+    padding: 16px;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--gold2);
+  }
+  .voice-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--pbr);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .voice-menu-header span {
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gold);
+  }
+  .close-voice-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--gold2);
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .close-voice-btn:hover {
+    color: var(--gold);
+  }
+  .voice-players-list {
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .voice-player-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--pbr);
+    margin-bottom: 8px;
+    background: #fdfdfd;
+    transition: all 0.2s;
+  }
+  .voice-player-item:hover {
+    background: #f8fafc;
+    border-color: var(--gold);
+  }
+  .voice-player-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .voice-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .voice-player-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--gold2);
+  }
+  .voice-mute-btn {
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    color: var(--gold2);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+  .voice-mute-btn:hover {
+    background: #f1f5f9;
+    color: var(--gold);
+  }
+  .voice-mute-btn.muted {
+    color: #dc2626;
+    background: #fee2e2;
+  }
 </style>
 
 <div class="audio-bar-wrapper" id="audio-bar-wrapper">
   <button class="audio-btn" id="btn-bgm" onclick="window.toggleBGM()"><i class="fas fa-music"></i></button>
   <button class="audio-btn" id="btn-sfx" onclick="window.toggleSFX()"><i class="fas fa-volume-up"></i></button>
   <button class="audio-btn muted" id="btn-mic" onclick="window.toggleMic()"><i class="fas fa-microphone"></i></button>
+  <button class="audio-btn" id="btn-speaker" onclick="window.toggleVoiceMenu()"><i class="fas fa-headphones"></i></button>
+</div>
+
+<div class="voice-menu-overlay" id="voice-menu-overlay" style="display: none;">
+  <div class="voice-menu-header">
+    <span>Voice Muting</span>
+    <button class="close-voice-btn" onclick="window.toggleVoiceMenu()">&times;</button>
+  </div>
+  <div class="voice-players-list" id="voice-players-list"></div>
 </div>
 
 <script>
@@ -136,16 +243,76 @@ window.toggleMic = async function() {
   }
 };
 
+window.toggleVoiceMenu = function() {
+  const overlay = document.getElementById('voice-menu-overlay');
+  if (!overlay) return;
+  const isHidden = overlay.style.display === 'none';
+  overlay.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    window.updateVoiceMenu();
+  }
+};
+
+window.updateVoiceMenu = function() {
+  const container = document.getElementById('voice-players-list');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  const players = window.lastVoicePlayers || [];
+  const myId = String(window.lastVoiceMyUid || '').trim();
+  const otherPlayers = players.filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
+  
+  if (otherPlayers.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.9rem;padding:12px;">No other players in room</div>';
+    return;
+  }
+  
+  otherPlayers.forEach(p => {
+    const uid = getVoiceUid(p);
+    const name = safeVoiceName(p, uid);
+    const isMuted = !!localMutedPlayers[uid];
+    const isOnline = p.isOnline !== false;
+    const color = p.color || '';
+    const colorDotStyle = color && COLOR_HEX[color] ? `background:${COLOR_HEX[color]}` : 'background:#64748b';
+    
+    const item = document.createElement('div');
+    item.className = 'voice-player-item';
+    
+    const info = document.createElement('div');
+    info.className = 'voice-player-info';
+    
+    const dot = document.createElement('div');
+    dot.className = 'voice-dot';
+    dot.style.cssText = colorDotStyle;
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'voice-player-name';
+    nameSpan.textContent = name + (!isOnline ? ' (Offline)' : '');
+    if (!isOnline) {
+      nameSpan.style.color = '#94a3b8';
+    }
+    
+    info.appendChild(dot);
+    info.appendChild(nameSpan);
+    
+    const muteBtn = document.createElement('button');
+    muteBtn.id = 'btn-mute-' + uid;
+    muteBtn.className = 'voice-mute-btn' + (isMuted ? ' muted' : '');
+    muteBtn.onclick = () => window.togglePlayerMute(uid);
+    muteBtn.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+    
+    item.appendChild(info);
+    item.appendChild(muteBtn);
+    container.appendChild(item);
+  });
+};
+
 window.togglePlayerMute = function(targetUid) {
   targetUid = String(targetUid || '').trim();
   if (!targetUid) return;
   localMutedPlayers[targetUid] = !localMutedPlayers[targetUid];
   if (remoteAudioElements[targetUid]) remoteAudioElements[targetUid].muted = !!localMutedPlayers[targetUid];
-  const btn = document.getElementById('btn-mute-' + targetUid);
-  if (btn) {
-    btn.classList.toggle('muted', !!localMutedPlayers[targetUid]);
-    btn.innerHTML = localMutedPlayers[targetUid] ? '<i class="fas fa-volume-mute" style="color:#dc2626"></i>' : '<i class="fas fa-volume-up"></i>';
-  }
+  window.updateVoiceMenu();
 };
 
 function handleRemoteCall(call) {
@@ -197,6 +364,7 @@ window.syncVoicePeers = async function(players, myUid) {
       } catch (err) {}
     }
   });
+  window.updateVoiceMenu();
 };
 
 window.closeVoiceChat = function() {
