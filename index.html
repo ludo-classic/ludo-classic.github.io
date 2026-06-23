@@ -1,8 +1,7 @@
 ---
 layout: default
 title: "Ludo Classic – Multiplayer"
-description: "Play India's favorite board game online! Create private rooms to play free multiplayer Ludo with friends
-and family. Enjoy 1v1, 2v2, and Free-For-All modes."
+description: "Play India's favorite board game online! Create private rooms to play free multiplayer Ludo with friends and family. Enjoy 1v1, 2v2, and Free-For-All modes."
 ---
 
 <style>
@@ -703,7 +702,11 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
     pointer-events: none;
     z-index: 9999;
     display: none;
-    transition: left .12s ease, top .12s ease;
+    transition: left .15s linear, top .15s linear, transform .07s alternate ease-out;
+  }
+
+  .goti-hop {
+    transform: scale(1.25) translateY(-6px);
   }
 
   .dice-scene {
@@ -1719,12 +1722,14 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
     if (first) { fg.style.left = (first.x - gSize / 2) + 'px'; fg.style.top = (first.y - gSize / 2) + 'px'; }
     let si = 0;
     const next = () => {
-      if (si >= steps.length) { fg.style.display = 'none'; if (captured) sndStar(); onDone(); return; }
+      if (si >= steps.length) { fg.classList.remove('goti-hop'); fg.style.display = 'none'; if (captured) sndStar(); onDone(); return; }
       const s = steps[si++], ctr = getCenter(s);
-      if (!ctr) { setTimeout(next, 120); return; }
+      if (!ctr) { setTimeout(next, 150); return; }
       fg.style.left = (ctr.x - gSize / 2) + 'px'; fg.style.top = (ctr.y - gSize / 2) + 'px';
+      fg.classList.add('goti-hop');
+      setTimeout(() => fg.classList.remove('goti-hop'), 75);
       if (!s.isHome) { sndMove(); if (s.r !== undefined) { const k = s.r + ',' + s.c; if (SAFE_CELLS.has(k)) setTimeout(sndStar, 50); } }
-      setTimeout(next, 120);
+      setTimeout(next, 150);
     };
     setTimeout(next, 50);
   }
@@ -1875,6 +1880,7 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
     let newPos, captured = false;
     if (fromPos === -1 && roll === 6) newPos = 0;
     else { newPos = calcNewPos(fromPos, roll); if (newPos === null) return; }
+    const reachedHome = newPos === 57;
     let winners = room.winners || [];
     if (newPos >= 0 && newPos <= 50) {
       const rc = getRC(color, newPos), rcKey = rc ? rc[0] + ',' + rc[1] : '';
@@ -1891,7 +1897,7 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
       }
     }
     goties[color][idx] = { pos: newPos };
-    const updates = { goties, pendingMove: null, turnStartTime: Date.now(), lastRoll: { uid: myUid, color, value: roll, at: Date.now() } };
+    const updates = { goties, pendingMove: null, turnStartTime: Date.now() };
     let finishedNow = false;
     if (room.mode === '2v2') {
       if (teamFinished(goties, room.mode, color)) {
@@ -1915,7 +1921,7 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
       updates.winnerTeam = room.mode === '2v2' ? getTeamColors(room.mode, color) : null;
       updates.lastEvent = { type: 'win', color, key: evKey + 'w', at: Date.now() };
     } else {
-      const extraTurn = roll === 6 || captured;
+      const extraTurn = roll === 6 || captured || reachedHome;
       updates.currentTurn = extraTurn ? color : getNextTurn(color, players, goties, room.mode);
     }
     await update(ref(db, 'games/' + roomCode), updates);
@@ -1956,18 +1962,18 @@ and family. Enjoy 1v1, 2v2, and Free-For-All modes."
           if (sixCounts[colorName] >= 3) {
             sixCounts[colorName] = 0;
             const nextTurn = getNextTurn(colorName, players, goties, room2.mode);
-            await update(ref(db, 'games/' + roomCode), { currentTurn: nextTurn, turnStartTime: Date.now(), pendingMove: null, sixCounts, lastRoll: { uid: myUid, color: colorName, value: val, at: Date.now() } });
+            await update(ref(db, 'games/' + roomCode), { currentTurn: nextTurn, turnStartTime: Date.now(), pendingMove: null, sixCounts });
             return;
           }
         } else sixCounts[colorName] = 0;
         const canAny = gtArr.some((gt, i) => canMove(colorName, i, gt.pos, val, goties));
         if (!canAny) {
           const nextTurn = getNextTurn(colorName, players, goties, room2.mode);
-          await update(ref(db, 'games/' + roomCode), { currentTurn: nextTurn, turnStartTime: Date.now(), pendingMove: null, sixCounts, lastRoll: { uid: myUid, color: colorName, value: val, at: Date.now() } });
+          await update(ref(db, 'games/' + roomCode), { currentTurn: nextTurn, turnStartTime: Date.now(), pendingMove: null, sixCounts });
           return;
         }
         pendingRoll = val; waitingForMove = true;
-        await update(ref(db, 'games/' + roomCode), { pendingMove: { uid: myUid, color: colorName, roll: val, key: evKey, at: Date.now() }, turnStartTime: Date.now(), sixCounts, lastRoll: { uid: myUid, color: colorName, value: val, at: Date.now() } });
+        await update(ref(db, 'games/' + roomCode), { pendingMove: { uid: myUid, color: colorName, roll: val, key: evKey, at: Date.now() }, turnStartTime: Date.now(), sixCounts });
         const playerMap = {}; players.forEach(p => { if (p && p.color) playerMap[p.color] = p; });
         applyTurn(colorName, playerMap, goties, val, room2);
       }, { once: true });
