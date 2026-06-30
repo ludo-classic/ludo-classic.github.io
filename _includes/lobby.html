@@ -187,8 +187,6 @@
     renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'Enter room code to choose color');
   };
 
-
-
   document.querySelectorAll('.mode-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
       document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected'));
@@ -200,11 +198,11 @@
   window.addEventListener('DOMContentLoaded',()=>{
     window.renderCreateColorChoices();
     const urlCode=new URLSearchParams(location.search).get('id');
+    
     if(urlCode){
-      window.switchTab('join');
       const joinInput=document.getElementById('join-code');
       if(joinInput)joinInput.value=urlCode.toUpperCase();
-      if(window.refreshJoinRoomPreview)window.refreshJoinRoomPreview();
+      window.switchTab('join');
     }
   });
 </script>
