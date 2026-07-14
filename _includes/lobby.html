@@ -1,6 +1,4 @@
 <style>
-  .screen { display: none; }
-  .screen.active { display: block; }
   .lobby-title{font-family:'Cinzel Decorative',serif;font-size:clamp(1.3rem,4vw,2.2rem);color:var(--gold);text-shadow:0 0 30px rgba(154,123,44,.2),0 2px 4px rgba(0,0,0,.1);letter-spacing:3px;margin-top:0;margin-bottom:4px;text-align:center;}
   .lobby-sub{color:#64748b;font-size:.72rem;letter-spacing:5px;text-transform:uppercase;margin-bottom:32px;text-align:center;}
   .lobby-card{background:var(--pb);border:1px solid var(--pbr);border-radius:18px;padding:28px;width:100%;max-width:420px;box-shadow:0 12px 32px rgba(0,0,0,.08);}
@@ -10,21 +8,27 @@
   .tab-panel{display:none;flex-direction:column;gap:14px;}
   .tab-panel.active{display:flex;}
   .tab-panel label{display:block;color:#475569;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;font-weight:600;}
-  .tab-panel input[type="text"]{width:100%;background:rgba(0,0,0,.02);border:1px solid var(--pbr);border-radius:8px;color:var(--gold2);font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;padding:10px 13px;letter-spacing:1px;transition:border-color .2s;outline:none;}
+  .tab-panel input[type="text"]{width:100%;background:rgba(0,0,0,.02);border:1px solid var(--pbr);border-radius:8px;color:var(--gold2);font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;padding:10px 13px;letter-spacing:1px;transition:border-color .2s;outline:none;box-sizing:border-box;}
   .tab-panel input[type="text"]:focus{border-color:var(--gold);background:#ffffff;}
   .tab-panel input[type="text"]::placeholder{color:#94a3b8;}
   .mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
   .mode-btn{padding:9px 5px;border:1px solid var(--pbr);border-radius:8px;background:transparent;color:#64748b;font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s;text-align:center;}
   .mode-btn.selected{border-color:var(--gold);color:var(--gold);background:rgba(154,123,44,.08);}
   .color-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
-  .color-btn{border:1px solid var(--pbr);background:transparent;border-radius:9px;padding:9px 5px;font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .2s;color:#64748b;display:flex;align-items:center;justify-content:center;gap:5px;}
-  .color-btn::before{content:'';width:12px;height:12px;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.25);}
+  .color-grid.team-color-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;}
+  .color-team-group{border:2px dotted rgba(154,123,44,.4);border-radius:11px;padding:8px;min-width:0;}
+  .color-team-title{color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:.66rem;font-weight:800;letter-spacing:1.5px;text-align:center;text-transform:uppercase;margin-bottom:7px;}
+  .color-team-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+  .color-btn{border:1px solid var(--pbr);background:transparent;border-radius:9px;padding:9px 5px;font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .2s;color:#64748b;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;}
+  .color-btn::before{content:'';width:12px;height:12px;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.25);flex-shrink:0;}
   .color-btn.red::before{background:#c62828;}
   .color-btn.green::before{background:#2e7d32;}
   .color-btn.yellow::before{background:#f9a825;}
   .color-btn.blue::before{background:#1565c0;}
   .color-btn.selected{border-color:var(--gold);background:rgba(154,123,44,.08);color:var(--gold);}
-  .color-empty{font-size:.76rem;color:#94a3b8;text-align:center;padding:9px;border:1px dashed var(--pbr);border-radius:9px;}
+  .color-empty{font-size:.76rem;color:#94a3b8;text-align:center;padding:9px;border:1px dashed var(--pbr);border-radius:9px;grid-column:1/-1;}
+  .team-choice-note{display:none;margin-top:7px;border-radius:8px;background:rgba(154,123,44,.07);color:#64748b;font-size:.7rem;font-weight:600;letter-spacing:.5px;line-height:1.4;padding:7px 9px;text-align:center;}
+  .team-choice-note.active{display:block;}
   .action-btn{width:100%;padding:12px;border:none;border-radius:9px;background:linear-gradient(135deg,#b89436,var(--gold));color:#ffffff;font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:4px;}
   .action-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(154,123,44,.25);}
   .action-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
@@ -35,25 +39,30 @@
   .room-label{color:#475569;font-size:.68rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
   .room-code{font-family:'Courier New',monospace;font-size:2rem;font-weight:700;color:var(--gold);letter-spacing:10px;cursor:pointer;}
   .room-mode-badge{display:inline-block;margin-top:8px;padding:3px 12px;border-radius:20px;background:rgba(154,123,44,.1);border:1px solid rgba(154,123,44,.25);color:var(--gold);font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
-  
   .players-list{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;}
-  .player-slot{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:10px;background:rgba(0,0,0,.03);border:1px solid var(--pbr);transition:border-color .3s;}
+  .players-list.team-view{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}
+  .team-group{border:2px dotted rgba(154,123,44,.42);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0;background:rgba(154,123,44,.025);}
+  .team-group-title{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-align:center;text-transform:uppercase;}
+  .team-pair-dots{display:flex;align-items:center;gap:3px;}
+  .team-pair-dot{width:8px;height:8px;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.22);}
+  .team-pair-dot.red{background:#c62828;}
+  .team-pair-dot.green{background:#2e7d32;}
+  .team-pair-dot.yellow{background:#f9a825;}
+  .team-pair-dot.blue{background:#1565c0;}
+  .team-group-slots{display:flex;flex-direction:column;gap:8px;}
+  .player-slot{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:10px;background:rgba(0,0,0,.03);border:1px solid var(--pbr);transition:border-color .3s;min-width:0;}
+  .team-view .player-slot{padding:10px;gap:8px;}
   .player-slot.filled{border-color:rgba(154,123,44,.3);}
   .player-slot.offline{opacity:.5;}
   .player-color-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;}
-  .player-name-w{font-size:.95rem;font-weight:600;color:var(--gold2);flex:1;}
+  .player-name-w{font-size:.95rem;font-weight:600;color:var(--gold2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .team-view .player-name-w{font-size:.86rem;}
   .player-name-w.empty{color:#94a3b8;font-style:italic;font-weight:400;}
   .player-you-tag,.host-tag,.offline-tag{font-size:.62rem;letter-spacing:2px;font-weight:700;text-transform:uppercase;}
+  .team-view .player-you-tag,.team-view .host-tag,.team-view .offline-tag{font-size:.55rem;letter-spacing:1px;}
   .player-you-tag{color:var(--gold);}
   .host-tag{color:#64748b;}
   .offline-tag{color:#e57373;margin-left:auto;}
-  
-  .team-group{border:2px dashed rgba(154,123,44,.35);border-radius:12px;padding:10px;margin-bottom:6px;background:rgba(154,123,44,.02);}
-  .team-group:last-child{margin-bottom:0;}
-  .team-label{font-size:.65rem;color:#64748b;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:10px;font-weight:800;}
-  .team-group .player-slot{margin-bottom:6px;}
-  .team-group .player-slot:last-child{margin-bottom:0;}
-
   .waiting-color-picker{margin-bottom:16px;}
   .waiting-color-picker label{display:block;color:#475569;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-weight:700;text-align:center;}
   .waiting-footer{text-align:center;}
@@ -64,6 +73,11 @@
   .ghost-btn:hover{border-color:var(--gold);color:var(--gold);}
   .danger-btn{background:transparent;border:1px solid #cbd5e1;border-radius:7px;color:#dc2626;font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:7px 14px;cursor:pointer;transition:all .2s;}
   .danger-btn:hover{border-color:#c62828;color:#b71c1c;}
+  @media(max-width:430px){
+    .lobby-card,.waiting-card{padding:20px;}
+    .color-grid.team-color-grid{grid-template-columns:1fr;}
+    .players-list.team-view{grid-template-columns:1fr;}
+  }
 </style>
 
 <div id="lobby-screen" class="screen active">
@@ -87,6 +101,7 @@
       <div>
         <label>Choose Color</label>
         <div class="color-grid" id="create-color-grid"></div>
+        <div class="team-choice-note" id="create-team-note"></div>
       </div>
       <hr class="divider">
       <div class="error-msg" id="create-error"></div>
@@ -98,6 +113,7 @@
       <div>
         <label>Available Colors</label>
         <div class="color-grid" id="join-color-grid"><div class="color-empty">Enter room code to choose color</div></div>
+        <div class="team-choice-note" id="join-team-note"></div>
       </div>
       <hr class="divider">
       <div class="error-msg" id="join-error"></div>
@@ -110,11 +126,10 @@
   <div class="waiting-card">
     <div class="room-header">
       <div class="room-label">Room Code — click to copy</div>
-      <div class="room-code" id="display-room-code" onclick="copyCode()">X7B9</div>
+      <div class="room-code" id="display-room-code" onclick="copyCode()">XXXX</div>
       <div class="room-mode-badge" id="display-mode">1v1</div>
     </div>
     <div class="players-list" id="players-list"></div>
-
     <div class="waiting-footer">
       <div class="waiting-dots" id="waiting-text">Waiting for players…</div>
       <div class="btn-row">
@@ -131,9 +146,45 @@
   window.selectedColor='red';
   window.selectedJoinColor='';
   window.lastJoinAvailableColors=[];
+  window.lastJoinRoomMode='';
   const lobbyColors=['red','green','yellow','blue'];
   const lobbyColorNames={red:'Red',green:'Green',yellow:'Yellow',blue:'Blue'};
-  const colorHex={red:'#c62828',green:'#2e7d32',yellow:'#f9a825',blue:'#1565c0'};
+  const lobbyTeams=[
+    {id:'team-one',name:'Team 1',colors:['red','yellow']},
+    {id:'team-two',name:'Team 2',colors:['green','blue']}
+  ];
+  const lobbyRgbColors={
+    'rgb(198, 40, 40)':'red',
+    'rgb(46, 125, 50)':'green',
+    'rgb(249, 168, 37)':'yellow',
+    'rgb(21, 101, 192)':'blue'
+  };
+  let waitingLayoutBusy=false;
+
+  function normalizeLobbyMode(mode){
+    const value=String(mode||'').toLowerCase().replace(/\s+/g,'');
+    if(value==='2v2'||value==='2vs2'||value==='2x2')return'2v2';
+    if(value==='1v1'||value==='1vs1')return'1v1';
+    if(value==='ffa'||value==='freeforall')return'ffa';
+    return value;
+  }
+
+  function getTeamForColor(color){
+    return lobbyTeams.find(team=>team.colors.includes(color))||null;
+  }
+
+  function updateTeamNote(id,mode,color){
+    const note=document.getElementById(id);
+    if(!note)return;
+    const team=normalizeLobbyMode(mode)==='2v2'?getTeamForColor(color):null;
+    if(!team){
+      note.classList.remove('active');
+      note.textContent='';
+      return;
+    }
+    note.textContent=team.name+': '+team.colors.map(item=>lobbyColorNames[item]).join(' + ')+'. Choose the paired color to play with your friend.';
+    note.classList.add('active');
+  }
 
   window.switchTab=function(tab){
     ['create','join'].forEach(t=>{
@@ -143,32 +194,52 @@
     if(tab==='join'&&window.refreshJoinRoomPreview)window.refreshJoinRoomPreview();
   };
 
-  function renderColorGrid(id, availableColors, selected, clickFn, emptyText) {
-    const grid = document.getElementById(id);
-    if(!grid) return;
-    grid.innerHTML = '';
-    lobbyColors.forEach(color => {
-      const isAvailable = availableColors.includes(color);
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      if (isAvailable) {
-        btn.className = 'color-btn ' + color + (selected === color ? ' selected' : '');
-        btn.onclick = () => clickFn(color);
-      } else {
-        btn.className = 'color-btn ' + color;
-        btn.style.opacity = '0.35';
-        btn.style.cursor = 'not-allowed';
-        btn.disabled = true;
-      }
-      btn.textContent = lobbyColorNames[color] || color;
-      grid.appendChild(btn);
-    });
-    if (availableColors.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'error-msg';
-      empty.style.gridColumn = '1 / -1';
-      empty.style.marginTop = '6px';
-      empty.textContent = emptyText || 'Room is full or no colors available';
+  function createColorButton(color,availableColors,selected,clickFn){
+    const isAvailable=availableColors.includes(color);
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='color-btn '+color+(isAvailable&&selected===color?' selected':'');
+    btn.textContent=lobbyColorNames[color]||color;
+    if(isAvailable){
+      btn.onclick=()=>clickFn(color);
+    }else{
+      btn.style.opacity='0.35';
+      btn.style.cursor='not-allowed';
+      btn.disabled=true;
+    }
+    return btn;
+  }
+
+  function renderColorGrid(id,availableColors,selected,clickFn,emptyText,mode){
+    const grid=document.getElementById(id);
+    if(!grid)return;
+    const safeColors=Array.isArray(availableColors)?availableColors:[];
+    const isTeamMode=normalizeLobbyMode(mode)==='2v2';
+    grid.innerHTML='';
+    grid.classList.toggle('team-color-grid',isTeamMode);
+    if(isTeamMode){
+      lobbyTeams.forEach(team=>{
+        const group=document.createElement('div');
+        group.className='color-team-group';
+        const title=document.createElement('div');
+        title.className='color-team-title';
+        title.textContent=team.name;
+        const buttons=document.createElement('div');
+        buttons.className='color-team-buttons';
+        team.colors.forEach(color=>buttons.appendChild(createColorButton(color,safeColors,selected,clickFn)));
+        group.appendChild(title);
+        group.appendChild(buttons);
+        grid.appendChild(group);
+      });
+    }else{
+      lobbyColors.forEach(color=>grid.appendChild(createColorButton(color,safeColors,selected,clickFn)));
+    }
+    if(safeColors.length===0){
+      const empty=document.createElement('div');
+      empty.className='error-msg';
+      empty.style.gridColumn='1 / -1';
+      empty.style.marginTop='6px';
+      empty.textContent=emptyText||'Room is full or no colors available';
       grid.appendChild(empty);
     }
   }
@@ -180,88 +251,163 @@
   };
 
   window.renderCreateColorChoices=function(){
-    renderColorGrid('create-color-grid',lobbyColors,window.selectedColor,window.selectCreateColor,'No color available');
+    renderColorGrid('create-color-grid',lobbyColors,window.selectedColor,window.selectCreateColor,'No color available',window.selectedMode);
+    updateTeamNote('create-team-note',window.selectedMode,window.selectedColor);
   };
 
   window.selectJoinColor=function(color){
     if(!window.lastJoinAvailableColors.includes(color))return;
     window.selectedJoinColor=color;
-    window.renderJoinAvailableColors(window.lastJoinAvailableColors,color,null);
+    window.renderJoinAvailableColors(window.lastJoinAvailableColors,color,null,window.lastJoinRoomMode);
   };
 
-  window.renderJoinAvailableColors=function(colors,selected,msg){
+  window.renderJoinAvailableColors=function(colors,selected,msg,mode){
     window.lastJoinAvailableColors=Array.isArray(colors)?colors:[];
+    if(mode)window.lastJoinRoomMode=normalizeLobbyMode(mode);
     if(selected&&window.lastJoinAvailableColors.includes(selected))window.selectedJoinColor=selected;
     else if(window.lastJoinAvailableColors.length)window.selectedJoinColor=window.lastJoinAvailableColors[0];
     else window.selectedJoinColor='';
-    renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'Enter room code to choose color');
+    renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'Enter room code to choose color',window.lastJoinRoomMode);
+    updateTeamNote('join-team-note',window.lastJoinRoomMode,window.selectedJoinColor);
+  };
+
+  window.setJoinRoomMode=function(mode){
+    window.lastJoinRoomMode=normalizeLobbyMode(mode);
+    window.renderJoinAvailableColors(window.lastJoinAvailableColors,window.selectedJoinColor,null,window.lastJoinRoomMode);
+  };
+
+  function getWaitingRoomMode(){
+    const badge=document.getElementById('display-mode');
+    const candidates=[
+      window.currentRoomMode,
+      window.roomMode,
+      window.activeRoom&&window.activeRoom.mode,
+      window.currentRoom&&window.currentRoom.mode,
+      badge&&badge.textContent,
+      window.selectedMode
+    ];
+    for(const candidate of candidates){
+      const mode=normalizeLobbyMode(candidate);
+      if(mode==='2v2'||mode==='1v1'||mode==='ffa')return mode;
+    }
+    return'1v1';
+  }
+
+  function detectSlotColor(slot){
+    const direct=String(slot.dataset.color||'').toLowerCase();
+    if(lobbyColors.includes(direct))return direct;
+    for(const color of lobbyColors){
+      if(slot.classList.contains(color))return color;
+    }
+    const dot=slot.querySelector('.player-color-dot');
+    if(!dot)return'';
+    const dotData=String(dot.dataset.color||'').toLowerCase();
+    if(lobbyColors.includes(dotData))return dotData;
+    for(const color of lobbyColors){
+      if(dot.classList.contains(color))return color;
+    }
+    const inline=String(dot.style.backgroundColor||'').trim();
+    if(lobbyRgbColors[inline])return lobbyRgbColors[inline];
+    const computed=String(getComputedStyle(dot).backgroundColor||'').trim();
+    return lobbyRgbColors[computed]||'';
+  }
+
+  function createWaitingTeamGroup(team){
+    const group=document.createElement('div');
+    group.className='team-group';
+    group.dataset.teamId=team.id;
+    const title=document.createElement('div');
+    title.className='team-group-title';
+    const dots=document.createElement('span');
+    dots.className='team-pair-dots';
+    team.colors.forEach(color=>{
+      const dot=document.createElement('span');
+      dot.className='team-pair-dot '+color;
+      dots.appendChild(dot);
+    });
+    const text=document.createElement('span');
+    text.textContent=team.name+' · '+team.colors.map(color=>lobbyColorNames[color]).join(' + ');
+    const slots=document.createElement('div');
+    slots.className='team-group-slots';
+    title.appendChild(dots);
+    title.appendChild(text);
+    group.appendChild(title);
+    group.appendChild(slots);
+    return group;
+  }
+
+  function slotTeamId(slot,index){
+    const saved=slot.dataset.teamId;
+    if(saved&&lobbyTeams.some(team=>team.id===saved))return saved;
+    const color=detectSlotColor(slot);
+    const byColor=getTeamForColor(color);
+    if(byColor)return byColor.id;
+    return index%2===0?'team-one':'team-two';
+  }
+
+  function restoreFlatPlayerList(list){
+    const slots=Array.from(list.querySelectorAll('.player-slot'));
+    slots.sort((a,b)=>Number(a.dataset.lobbyOrder||0)-Number(b.dataset.lobbyOrder||0));
+    waitingLayoutBusy=true;
+    list.innerHTML='';
+    slots.forEach(slot=>{
+      delete slot.dataset.teamId;
+      list.appendChild(slot);
+    });
+    list.classList.remove('team-view');
+    delete list.dataset.teamLayout;
+    waitingLayoutBusy=false;
+  }
+
+  window.applyWaitingTeamLayout=function(mode){
+    const list=document.getElementById('players-list');
+    if(!list||waitingLayoutBusy)return;
+    const activeMode=normalizeLobbyMode(mode||getWaitingRoomMode());
+    if(activeMode!=='2v2'){
+      if(list.classList.contains('team-view'))restoreFlatPlayerList(list);
+      return;
+    }
+    const slots=Array.from(list.querySelectorAll('.player-slot'));
+    if(!slots.length)return;
+    const currentGroups=Array.from(list.children).filter(child=>child.classList&&child.classList.contains('team-group'));
+    const alreadyValid=list.classList.contains('team-view')&&currentGroups.length===2&&slots.every(slot=>{
+      const parent=slot.closest('.team-group');
+      return parent&&parent.dataset.teamId===slot.dataset.teamId;
+    });
+    if(alreadyValid)return;
+    slots.forEach((slot,index)=>{
+      if(!slot.dataset.lobbyOrder)slot.dataset.lobbyOrder=String(index);
+      slot.dataset.teamId=slotTeamId(slot,index);
+    });
+    const groups=lobbyTeams.map(createWaitingTeamGroup);
+    waitingLayoutBusy=true;
+    list.innerHTML='';
+    groups.forEach(group=>list.appendChild(group));
+    slots.forEach(slot=>{
+      const target=list.querySelector('.team-group[data-team-id="'+slot.dataset.teamId+'"] .team-group-slots');
+      if(target)target.appendChild(slot);
+    });
+    list.classList.add('team-view');
+    list.dataset.teamLayout='2v2';
+    waitingLayoutBusy=false;
+  };
+
+  window.setWaitingRoomMode=function(mode){
+    const normalized=normalizeLobbyMode(mode);
+    const badge=document.getElementById('display-mode');
+    window.currentRoomMode=normalized;
+    if(badge)badge.textContent=normalized;
+    window.applyWaitingTeamLayout(normalized);
   };
 
   document.querySelectorAll('.mode-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
-      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected'));
+      document.querySelectorAll('.mode-btn').forEach(item=>item.classList.remove('selected'));
       btn.classList.add('selected');
       window.selectedMode=btn.dataset.mode;
+      window.renderCreateColorChoices();
     });
   });
-
-  window.createRoom = function() {
-    document.getElementById('lobby-screen').classList.remove('active');
-    document.getElementById('waiting-screen').classList.add('active');
-    document.getElementById('display-mode').textContent = window.selectedMode;
-    renderWaitingPlayers(window.selectedMode, document.getElementById('create-name').value || 'Player 1', window.selectedColor);
-  };
-
-  window.joinRoom = function() {
-    document.getElementById('lobby-screen').classList.remove('active');
-    document.getElementById('waiting-screen').classList.add('active');
-    document.getElementById('display-mode').textContent = '2v2';
-    renderWaitingPlayers('2v2', document.getElementById('join-name').value || 'Player 2', window.selectedJoinColor || 'blue');
-  };
-
-  window.leaveRoom = function() {
-    document.getElementById('waiting-screen').classList.remove('active');
-    document.getElementById('lobby-screen').classList.add('active');
-  };
-
-  function renderWaitingPlayers(mode, playerName, color) {
-    const list = document.getElementById('players-list');
-    list.innerHTML = '';
-    
-    const buildSlot = (c, name, isYou, isHost, empty) => {
-      const bg = empty ? '#cbd5e1' : (colorHex[c] || '#94a3b8');
-      return `<div class="player-slot ${empty ? '' : 'filled'}">
-                <div class="player-color-dot" style="background:${bg}"></div>
-                <div class="player-name-w ${empty ? 'empty' : ''}">${name}</div>
-                ${isYou ? '<div class="player-you-tag">You</div>' : ''}
-                ${isHost ? '<div class="host-tag">Host</div>' : ''}
-              </div>`;
-    };
-
-    if (mode === '2v2') {
-      const team1 = document.createElement('div');
-      team1.className = 'team-group';
-      team1.innerHTML = `<div class="team-label">Team 1</div>` + 
-                        buildSlot(color, playerName, true, true, false) + 
-                        buildSlot('', 'Waiting...', false, false, true);
-      
-      const team2 = document.createElement('div');
-      team2.className = 'team-group';
-      team2.innerHTML = `<div class="team-label">Team 2</div>` + 
-                        buildSlot('', 'Waiting...', false, false, true) + 
-                        buildSlot('', 'Waiting...', false, false, true);
-      
-      list.appendChild(team1);
-      list.appendChild(team2);
-    } else {
-      const maxSlots = mode === '1v1' ? 2 : 4;
-      let html = buildSlot(color, playerName, true, true, false);
-      for(let i = 1; i < maxSlots; i++) {
-        html += buildSlot('', 'Waiting...', false, false, true);
-      }
-      list.innerHTML = html;
-    }
-  }
 
   window.addEventListener('DOMContentLoaded',()=>{
     window.renderCreateColorChoices();
@@ -271,5 +417,19 @@
       if(joinInput)joinInput.value=urlCode.toUpperCase();
       window.switchTab('join');
     }
+    const playersList=document.getElementById('players-list');
+    const modeBadge=document.getElementById('display-mode');
+    if(playersList){
+      const playerObserver=new MutationObserver(()=>{
+        if(waitingLayoutBusy)return;
+        queueMicrotask(()=>window.applyWaitingTeamLayout());
+      });
+      playerObserver.observe(playersList,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','data-color']});
+    }
+    if(modeBadge){
+      const modeObserver=new MutationObserver(()=>window.applyWaitingTeamLayout(modeBadge.textContent));
+      modeObserver.observe(modeBadge,{childList:true,subtree:true,characterData:true});
+    }
+    window.applyWaitingTeamLayout();
   });
 </script>
