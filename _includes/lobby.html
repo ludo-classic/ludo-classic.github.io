@@ -1,4 +1,6 @@
 <style>
+  .screen { display: none; }
+  .screen.active { display: block; }
   .lobby-title{font-family:'Cinzel Decorative',serif;font-size:clamp(1.3rem,4vw,2.2rem);color:var(--gold);text-shadow:0 0 30px rgba(154,123,44,.2),0 2px 4px rgba(0,0,0,.1);letter-spacing:3px;margin-top:0;margin-bottom:4px;text-align:center;}
   .lobby-sub{color:#64748b;font-size:.72rem;letter-spacing:5px;text-transform:uppercase;margin-bottom:32px;text-align:center;}
   .lobby-card{background:var(--pb);border:1px solid var(--pbr);border-radius:18px;padding:28px;width:100%;max-width:420px;box-shadow:0 12px 32px rgba(0,0,0,.08);}
@@ -33,6 +35,7 @@
   .room-label{color:#475569;font-size:.68rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
   .room-code{font-family:'Courier New',monospace;font-size:2rem;font-weight:700;color:var(--gold);letter-spacing:10px;cursor:pointer;}
   .room-mode-badge{display:inline-block;margin-top:8px;padding:3px 12px;border-radius:20px;background:rgba(154,123,44,.1);border:1px solid rgba(154,123,44,.25);color:var(--gold);font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+  
   .players-list{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;}
   .player-slot{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:10px;background:rgba(0,0,0,.03);border:1px solid var(--pbr);transition:border-color .3s;}
   .player-slot.filled{border-color:rgba(154,123,44,.3);}
@@ -44,6 +47,13 @@
   .player-you-tag{color:var(--gold);}
   .host-tag{color:#64748b;}
   .offline-tag{color:#e57373;margin-left:auto;}
+  
+  .team-group{border:2px dashed rgba(154,123,44,.35);border-radius:12px;padding:10px;margin-bottom:6px;background:rgba(154,123,44,.02);}
+  .team-group:last-child{margin-bottom:0;}
+  .team-label{font-size:.65rem;color:#64748b;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:10px;font-weight:800;}
+  .team-group .player-slot{margin-bottom:6px;}
+  .team-group .player-slot:last-child{margin-bottom:0;}
+
   .waiting-color-picker{margin-bottom:16px;}
   .waiting-color-picker label{display:block;color:#475569;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-weight:700;text-align:center;}
   .waiting-footer{text-align:center;}
@@ -100,7 +110,7 @@
   <div class="waiting-card">
     <div class="room-header">
       <div class="room-label">Room Code — click to copy</div>
-      <div class="room-code" id="display-room-code" onclick="copyCode()">XXXX</div>
+      <div class="room-code" id="display-room-code" onclick="copyCode()">X7B9</div>
       <div class="room-mode-badge" id="display-mode">1v1</div>
     </div>
     <div class="players-list" id="players-list"></div>
@@ -123,6 +133,7 @@
   window.lastJoinAvailableColors=[];
   const lobbyColors=['red','green','yellow','blue'];
   const lobbyColorNames={red:'Red',green:'Green',yellow:'Yellow',blue:'Blue'};
+  const colorHex={red:'#c62828',green:'#2e7d32',yellow:'#f9a825',blue:'#1565c0'};
 
   window.switchTab=function(tab){
     ['create','join'].forEach(t=>{
@@ -194,10 +205,67 @@
     });
   });
 
+  window.createRoom = function() {
+    document.getElementById('lobby-screen').classList.remove('active');
+    document.getElementById('waiting-screen').classList.add('active');
+    document.getElementById('display-mode').textContent = window.selectedMode;
+    renderWaitingPlayers(window.selectedMode, document.getElementById('create-name').value || 'Player 1', window.selectedColor);
+  };
+
+  window.joinRoom = function() {
+    document.getElementById('lobby-screen').classList.remove('active');
+    document.getElementById('waiting-screen').classList.add('active');
+    document.getElementById('display-mode').textContent = '2v2';
+    renderWaitingPlayers('2v2', document.getElementById('join-name').value || 'Player 2', window.selectedJoinColor || 'blue');
+  };
+
+  window.leaveRoom = function() {
+    document.getElementById('waiting-screen').classList.remove('active');
+    document.getElementById('lobby-screen').classList.add('active');
+  };
+
+  function renderWaitingPlayers(mode, playerName, color) {
+    const list = document.getElementById('players-list');
+    list.innerHTML = '';
+    
+    const buildSlot = (c, name, isYou, isHost, empty) => {
+      const bg = empty ? '#cbd5e1' : (colorHex[c] || '#94a3b8');
+      return `<div class="player-slot ${empty ? '' : 'filled'}">
+                <div class="player-color-dot" style="background:${bg}"></div>
+                <div class="player-name-w ${empty ? 'empty' : ''}">${name}</div>
+                ${isYou ? '<div class="player-you-tag">You</div>' : ''}
+                ${isHost ? '<div class="host-tag">Host</div>' : ''}
+              </div>`;
+    };
+
+    if (mode === '2v2') {
+      const team1 = document.createElement('div');
+      team1.className = 'team-group';
+      team1.innerHTML = `<div class="team-label">Team 1</div>` + 
+                        buildSlot(color, playerName, true, true, false) + 
+                        buildSlot('', 'Waiting...', false, false, true);
+      
+      const team2 = document.createElement('div');
+      team2.className = 'team-group';
+      team2.innerHTML = `<div class="team-label">Team 2</div>` + 
+                        buildSlot('', 'Waiting...', false, false, true) + 
+                        buildSlot('', 'Waiting...', false, false, true);
+      
+      list.appendChild(team1);
+      list.appendChild(team2);
+    } else {
+      const maxSlots = mode === '1v1' ? 2 : 4;
+      let html = buildSlot(color, playerName, true, true, false);
+      for(let i = 1; i < maxSlots; i++) {
+        html += buildSlot('', 'Waiting...', false, false, true);
+      }
+      list.innerHTML = html;
+    }
+  }
+
   window.addEventListener('DOMContentLoaded',()=>{
     window.renderCreateColorChoices();
     const urlCode=new URLSearchParams(location.search).get('id');
-    
     if(urlCode){
       const joinInput=document.getElementById('join-code');
       if(joinInput)joinInput.value=urlCode.toUpperCase();
