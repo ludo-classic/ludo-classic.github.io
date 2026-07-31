@@ -544,6 +544,12 @@ description: "Play India's favorite board game online! Create private rooms to p
     gap: 3px;
     padding: 6px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, .2), inset 0 0 0 2px rgba(255, 255, 255, .3);
+    transition: opacity 0.3s ease, filter 0.3s ease;
+  }
+
+  .home-card.inactive-card {
+    opacity: 0.35;
+    filter: grayscale(100%);
   }
 
   .home-card.red {
@@ -1308,7 +1314,7 @@ description: "Play India's favorite board game online! Create private rooms to p
   function allFinished(goties, color) { return (goties[color] || []).length === 4 && (goties[color] || []).every(g => g.pos === 57); }
   function teamFinished(goties, mode, color) { return getTeamColors(mode, color).every(c => allFinished(goties, c)); }
   function isColorActive(goties, mode, color) { return mode === '2v2' ? !teamFinished(goties, mode, color) && !allFinished(goties, color) : !allFinished(goties, color); }
-  function getActiveColors(players, goties, mode) { return players.filter(p => p && p.color).map(p => p.color).filter(c => COLORS.includes(c) && isColorActive(goties, mode, c)); }
+  function getActiveColors(players, goties, mode) { return players.filter(p => p && p.color && p.isOnline !== false).map(p => p.color).filter(c => COLORS.includes(c) && isColorActive(goties, mode, c)); }
   function getNextTurn(currentColor, players, goties, mode) { const cols = getActiveColors(players, goties, mode); if (cols.length === 0) return currentColor; const idx = cols.indexOf(currentColor); return cols[(idx < 0 ? 0 : idx + 1) % cols.length]; }
   function makeInitialGoties() { const ig = {}; COLORS.forEach(c => { ig[c] = [{ pos: -1 }, { pos: -1 }, { pos: -1 }, { pos: -1 }]; }); return ig; }
   function makeSixCounts() { return { red: 0, green: 0, yellow: 0, blue: 0 }; }
@@ -1621,7 +1627,7 @@ description: "Play India's favorite board game online! Create private rooms to p
     if (room.pendingMove && room.pendingMove.color === room.currentTurn && currentPlayer) setTurnText(getSafePlayerName(currentPlayer, room.currentTurn) + ' rolled ' + room.pendingMove.roll + ' — pick a goti (' + timeLeft + 's)');
     else if (currentPlayer) setTurnText(getSafePlayerName(currentPlayer, room.currentTurn) + '\'s Turn (' + timeLeft + 's)');
     let shouldPass = false;
-    if (!currentPlayer) shouldPass = true;
+    if (!currentPlayer || currentPlayer.isOnline === false) shouldPass = true;
     if (elapsed > 20000) shouldPass = true;
     if (isHost && shouldPass && !window.isPassingTurn) {
       window.isPassingTurn = true;
@@ -1735,6 +1741,16 @@ description: "Play India's favorite board game online! Create private rooms to p
   function renderGame(players, room, playerMapIn) {
     const playerMap = playerMapIn || {};
     if (!playerMapIn) players.forEach(p => { if (p && p.color) playerMap[p.color] = p; });
+    COLORS.forEach(color => {
+      const cardEl = document.getElementById('card-' + color[0]);
+      if (!cardEl) return;
+      const p = playerMap[color];
+      if (!p || p.isOnline === false) {
+        cardEl.classList.add('inactive-card');
+      } else {
+        cardEl.classList.remove('inactive-card');
+      }
+    });
     renderGoties(room.goties || {}, playerMap);
     const activeRoll = room.pendingMove && room.pendingMove.uid === myUid && room.pendingMove.color === room.currentTurn ? room.pendingMove.roll : 0;
     applyTurn(room.currentTurn || players[0]?.color || 'red', playerMap, room.goties || {}, activeRoll, room);
