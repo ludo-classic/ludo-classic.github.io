@@ -708,11 +708,66 @@ description: "Play India's favorite board game online! Create private rooms to p
     pointer-events: none;
     z-index: 9999;
     display: none;
-    transition: left .15s linear, top .15s linear, transform .07s alternate ease-out;
+  }
+
+  #floating-goti::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 140%;
+    height: 140%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 0, 0, .28), transparent 70%);
+    z-index: -1;
+    opacity: 0;
+  }
+
+  .goti-hop::after {
+    opacity: 1;
   }
 
   .goti-hop {
-    transform: scale(1.25) translateY(-6px);
+    animation: hopArc .26s cubic-bezier(.34, 1.56, .64, 1);
+  }
+
+  @keyframes hopArc {
+    0% {
+      transform: scale(1, 1);
+    }
+
+    35% {
+      transform: scale(1.2, 0.82);
+    }
+
+    65% {
+      transform: scale(0.9, 1.12);
+    }
+
+    100% {
+      transform: scale(1, 1);
+    }
+  }
+
+  .goti-capture-pop {
+    animation: capturePop .3s ease-out;
+  }
+
+  @keyframes capturePop {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.5);
+      filter: brightness(1.6);
+    }
+
+    100% {
+      transform: scale(0);
+      opacity: 0;
+    }
   }
 
   .dice-scene {
@@ -1271,7 +1326,7 @@ description: "Play India's favorite board game online! Create private rooms to p
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, set, get, update, onValue, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, set, get, update, onValue, remove, onDisconnect, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const app = initializeApp({ databaseURL: "https://talkrush-76259-default-rtdb.asia-southeast1.firebasedatabase.app" });
   const db = getDatabase(app);
@@ -1320,6 +1375,8 @@ description: "Play India's favorite board game online! Create private rooms to p
   function makeSixCounts() { return { red: 0, green: 0, yellow: 0, blue: 0 }; }
   function normalizeEmoji(emoji) { return VALID_EMOJIS.has(emoji) ? emoji : '❤️'; }
   function safeMode() { return MODE_SLOTS[window.selectedMode] ? window.selectedMode : '1v1'; }
+  function earliestOnlineUid(players) { const online = getOnlinePlayers(players); if (online.length === 0) return null; return sortPlayers(online)[0].uid; }
+  function effectiveHostUid(room, players) { const hostP = room.hostUid ? players.find(p => p.uid === room.hostUid) : null; if (hostP && hostP.isOnline !== false) return room.hostUid; return earliestOnlineUid(players); }
 
   function getACtx() {
     if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } }
@@ -1361,6 +1418,7 @@ description: "Play India's favorite board game online! Create private rooms to p
 
   function sndMove() { playTone(380 + Math.random() * 120, 0.07, 'square', 0.18); }
   function sndStar() { [523, 659, 784, 1047].forEach((f, i) => playTone(f, 0.14, 'sine', 0.32, i * 0.08)); }
+  function sndCapture() { [220, 165, 110].forEach((f, i) => playTone(f, 0.16, 'sawtooth', 0.28, i * 0.06)); }
 
   function sndWin() {
     if (!window.isSfxEnabled) return;
@@ -1525,8 +1583,16 @@ description: "Play India's favorite board game online! Create private rooms to p
       const snap = await get(ref(db, 'games/' + roomCode));
       const room = snap.val();
       const players = sortPlayers(Object.values(room?.players || {}));
-      if ((room?.hostUid || players[0]?.uid) === myUid) await remove(ref(db, 'games/' + roomCode));
-      else await remove(ref(db, 'games/' + roomCode + '/players/' + myUid));
+      const host = room ? effectiveHostUid(room, players) : null;
+      const onlineCount = getOnlinePlayers(players).filter(p => p.uid !== myUid).length;
+      if (host === myUid && onlineCount === 0) await remove(ref(db, 'games/' + roomCode));
+      else {
+        await remove(ref(db, 'games/' + roomCode + '/players/' + myUid));
+        if (host === myUid) {
+          const nextHost = earliestOnlineUid(players.filter(p => p.uid !== myUid));
+          if (nextHost) await update(ref(db, 'games/' + roomCode), { hostUid: nextHost });
+        }
+      }
     } catch (e) { }
     cleanup();
     window.showScreen('lobby-screen');
@@ -1540,8 +1606,17 @@ description: "Play India's favorite board game online! Create private rooms to p
       const room = snap.val();
       if (room) {
         const players = sortPlayers(Object.values(room.players || {}));
-        if ((room.hostUid || players[0]?.uid) === myUid) await remove(ref(db, 'games/' + roomCode));
-        else await update(ref(db, 'games/' + roomCode + '/players/' + myUid), { isOnline: false, lastSeen: Date.now() });
+        const host = effectiveHostUid(room, players);
+        const onlineCount = getOnlinePlayers(players).filter(p => p.uid !== myUid).length;
+        if (host === myUid && onlineCount === 0) await remove(ref(db, 'games/' + roomCode));
+        else {
+          const updates = { ['players/' + myUid + '/isOnline']: false, ['players/' + myUid + '/lastSeen']: Date.now() };
+          if (host === myUid) {
+            const nextHost = earliestOnlineUid(players.filter(p => p.uid !== myUid));
+            if (nextHost) updates['hostUid'] = nextHost;
+          }
+          await update(ref(db, 'games/' + roomCode), updates);
+        }
       }
     } catch (e) { }
     cleanup();
@@ -1578,6 +1653,7 @@ description: "Play India's favorite board game online! Create private rooms to p
     list.innerHTML = '';
     const maxSlots = getSlots(mode);
     const onlinePlayers = getOnlinePlayers(players).filter(p => p && COLORS.includes(p.color));
+    const hostUid = effectiveHostUid(room, players);
     for (let i = 0; i < maxSlots; i++) {
       const p = onlinePlayers[i] || null;
       const slot = document.createElement('div');
@@ -1592,7 +1668,7 @@ description: "Play India's favorite board game online! Create private rooms to p
       slot.appendChild(nm);
       if (p) {
         if (p.uid === myUid) { const y = document.createElement('span'); y.className = 'player-you-tag'; y.textContent = 'YOU'; slot.appendChild(y); }
-        if ((room?.hostUid || players[0]?.uid) === p.uid) { const h = document.createElement('span'); h.className = 'host-tag'; h.textContent = 'HOST'; slot.appendChild(h); }
+        if (hostUid === p.uid) { const h = document.createElement('span'); h.className = 'host-tag'; h.textContent = 'HOST'; slot.appendChild(h); }
       }
       list.appendChild(slot);
     }
@@ -1602,7 +1678,7 @@ description: "Play India's favorite board game online! Create private rooms to p
     const wt = document.getElementById('waiting-text');
     if (onlinePlayers.length >= maxSlots) {
       wt.textContent = 'All players joined! Starting…';
-      if ((room?.hostUid || players[0]?.uid) === myUid) setTimeout(startGame, 1200);
+      if (hostUid === myUid) setTimeout(startGame, 1200);
     } else wt.textContent = 'Waiting for players… (' + onlinePlayers.length + '/' + maxSlots + ')';
   }
 
@@ -1620,8 +1696,7 @@ description: "Play India's favorite board game online! Create private rooms to p
     if (room.status !== 'playing' || isAnimating) return;
     const goties = room.goties || {};
     const currentPlayer = getPlayerByColor(players, room.currentTurn);
-    const onlinePlayers = getOnlinePlayers(players);
-    const isHost = (room.hostUid || onlinePlayers[0]?.uid) === myUid;
+    const isHost = effectiveHostUid(room, players) === myUid;
     const elapsed = Date.now() - (room.turnStartTime || Date.now());
     const timeLeft = Math.max(0, 20 - Math.floor(elapsed / 1000));
     if (room.pendingMove && room.pendingMove.color === room.currentTurn && currentPlayer) setTurnText(getSafePlayerName(currentPlayer, room.currentTurn) + ' rolled ' + room.pendingMove.roll + ' — pick a goti (' + timeLeft + 's)');
@@ -1631,8 +1706,22 @@ description: "Play India's favorite board game online! Create private rooms to p
     if (elapsed > 20000) shouldPass = true;
     if (isHost && shouldPass && !window.isPassingTurn) {
       window.isPassingTurn = true;
-      const nextTurn = getNextTurn(room.currentTurn, players, goties, room.mode);
-      await update(ref(db, 'games/' + roomCode), { currentTurn: nextTurn, turnStartTime: Date.now(), pendingMove: null, sixCounts: { ...(room.sixCounts || makeSixCounts()), [room.currentTurn]: 0 } });
+      const txRef = ref(db, 'games/' + roomCode);
+      await runTransaction(txRef, current => {
+        if (!current || current.status !== 'playing') return current;
+        if (current.currentTurn !== room.currentTurn) return current;
+        const curElapsed = Date.now() - (current.turnStartTime || Date.now());
+        const curPlayers = sortPlayers(Object.values(current.players || {}));
+        const curPlayer = getPlayerByColor(curPlayers, current.currentTurn);
+        const curShouldPass = !curPlayer || curPlayer.isOnline === false || curElapsed > 20000;
+        if (!curShouldPass) return current;
+        const nextTurn = getNextTurn(current.currentTurn, curPlayers, current.goties || {}, current.mode);
+        current.currentTurn = nextTurn;
+        current.turnStartTime = Date.now();
+        current.pendingMove = null;
+        current.sixCounts = { ...(current.sixCounts || makeSixCounts()), [room.currentTurn]: 0 };
+        return current;
+      });
       setTimeout(() => window.isPassingTurn = false, 1500);
     }
   }
@@ -1698,8 +1787,26 @@ description: "Play India's favorite board game online! Create private rooms to p
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   }
 
+  function easeInOutQuad(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+  function tweenPosition(fg, from, to, duration, gSize, onDone) {
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const e = easeInOutQuad(t);
+      const x = from.x + (to.x - from.x) * e;
+      const y = from.y + (to.y - from.y) * e;
+      const hop = Math.sin(e * Math.PI) * 10;
+      fg.style.left = (x - gSize / 2) + 'px';
+      fg.style.top = (y - gSize / 2 - hop) + 'px';
+      if (t < 1) requestAnimationFrame(frame);
+      else onDone();
+    }
+    requestAnimationFrame(frame);
+  }
+
   function animateMove(color, idx, fromPos, toPos, goties, captured, onDone) {
-    if (document.hidden) { if (captured) sndStar(); onDone(); return; }
+    if (document.hidden) { if (captured) sndCapture(); else if (toPos === 57) sndStar(); onDone(); return; }
     const cfg = COLOR_CFG[color];
     const fg = document.getElementById('floating-goti');
     fg.style.background = COLOR_GRAD[color]; fg.style.display = 'block';
@@ -1725,17 +1832,17 @@ description: "Play India's favorite board game online! Create private rooms to p
     const first = getCenter(steps[0]);
     if (first) { fg.style.left = (first.x - gSize / 2) + 'px'; fg.style.top = (first.y - gSize / 2) + 'px'; }
     let si = 0;
+    const stepDuration = steps.length > 6 ? 90 : 150;
     const next = () => {
-      if (si >= steps.length) { fg.classList.remove('goti-hop'); fg.style.display = 'none'; if (captured) sndStar(); onDone(); return; }
+      if (si >= steps.length) { fg.classList.remove('goti-hop'); fg.style.display = 'none'; if (captured) sndCapture(); else if (toPos === 57) sndStar(); onDone(); return; }
+      const prevCenter = si === 0 ? getCenter(steps[0]) : getCenter(steps[si - 1]);
       const s = steps[si++], ctr = getCenter(s);
-      if (!ctr) { setTimeout(next, 150); return; }
-      fg.style.left = (ctr.x - gSize / 2) + 'px'; fg.style.top = (ctr.y - gSize / 2) + 'px';
-      fg.classList.add('goti-hop');
-      setTimeout(() => fg.classList.remove('goti-hop'), 75);
-      if (!s.isHome) { sndMove(); if (s.r !== undefined) { const k = s.r + ',' + s.c; if (SAFE_CELLS.has(k)) setTimeout(sndStar, 50); } }
-      setTimeout(next, 150);
+      if (!ctr || !prevCenter) { setTimeout(next, stepDuration); return; }
+      if (!s.isHome) { sndMove(); if (s.r !== undefined) { const k = s.r + ',' + s.c; if (SAFE_CELLS.has(k) && s !== steps[steps.length - 1]) setTimeout(sndStar, stepDuration * 0.5); } }
+      fg.classList.remove('goti-hop'); void fg.offsetWidth; fg.classList.add('goti-hop');
+      tweenPosition(fg, prevCenter, ctr, stepDuration, gSize, next);
     };
-    setTimeout(next, 50);
+    next();
   }
 
   function renderGame(players, room, playerMapIn) {
@@ -1880,65 +1987,75 @@ description: "Play India's favorite board game online! Create private rooms to p
 
   async function moveGoti(color, idx, roll) {
     if (!waitingForMove) return;
-    const snap = await get(ref(db, 'games/' + roomCode));
-    const room = snap.val(); if (!room || room.status !== 'playing') return;
-    const pending = room.pendingMove || {};
-    if (room.currentTurn !== color || pending.uid !== myUid || pending.color !== color || pending.roll !== roll) return;
-    const goties = room.goties || {};
-    const gt = (goties[color] || [])[idx]; if (!gt || !canMove(color, idx, gt.pos, roll, goties)) return;
     waitingForMove = false; pendingRoll = 0;
     document.querySelectorAll('.goti.selectable').forEach(g => { g.classList.remove('selectable'); g.onclick = null; });
     document.querySelectorAll('.token.selectable').forEach(g => { g.classList.remove('selectable'); g.onclick = null; });
-    const players = sortPlayers(Object.values(room.players || {}));
-    const fromPos = gt.pos;
-    let newPos, captured = false;
-    if (fromPos === -1 && roll === 6) newPos = 0;
-    else { newPos = calcNewPos(fromPos, roll); if (newPos === null) return; }
-    const reachedHome = newPos === 57;
-    let winners = room.winners || [];
-    if (newPos >= 0 && newPos <= 50) {
-      const rc = getRC(color, newPos), rcKey = rc ? rc[0] + ',' + rc[1] : '';
-      if (!SAFE_CELLS.has(rcKey)) {
-        for (const oc of COLORS) {
-          if (oc === color || isSameTeam(room.mode, oc, color)) continue;
-          const og = goties[oc] || [];
-          for (let oi = 0; oi < og.length; oi++) {
-            if (og[oi].pos < 0 || og[oi].pos >= 51) continue;
-            const orc = getRC(oc, og[oi].pos);
-            if (orc && rc && orc[0] === rc[0] && orc[1] === rc[1]) { goties[oc][oi] = { pos: -1 }; captured = true; }
+    const myUidLocal = myUid, roomCodeLocal = roomCode;
+    const txRef = ref(db, 'games/' + roomCodeLocal);
+    let txResult = null;
+    await runTransaction(txRef, room => {
+      if (!room || room.status !== 'playing') return room;
+      const pending = room.pendingMove || {};
+      if (room.currentTurn !== color || pending.uid !== myUidLocal || pending.color !== color || pending.roll !== roll) return room;
+      const goties = room.goties || {};
+      const gt = (goties[color] || [])[idx];
+      if (!gt || !canMove(color, idx, gt.pos, roll, goties)) return room;
+      const players = sortPlayers(Object.values(room.players || {}));
+      const fromPos = gt.pos;
+      let newPos;
+      if (fromPos === -1 && roll === 6) newPos = 0;
+      else { newPos = calcNewPos(fromPos, roll); if (newPos === null) return room; }
+      const reachedHome = newPos === 57;
+      let captured = false;
+      let winners = room.winners || [];
+      if (newPos >= 0 && newPos <= 50) {
+        const rc = getRC(color, newPos), rcKey = rc ? rc[0] + ',' + rc[1] : '';
+        if (!SAFE_CELLS.has(rcKey)) {
+          for (const oc of COLORS) {
+            if (oc === color || isSameTeam(room.mode, oc, color)) continue;
+            const og = goties[oc] || [];
+            for (let oi = 0; oi < og.length; oi++) {
+              if (og[oi].pos < 0 || og[oi].pos >= 51) continue;
+              const orc = getRC(oc, og[oi].pos);
+              if (orc && rc && orc[0] === rc[0] && orc[1] === rc[1]) { goties[oc][oi] = { pos: -1 }; captured = true; }
+            }
           }
         }
       }
-    }
-    goties[color][idx] = { pos: newPos };
-    const updates = { goties, pendingMove: null, turnStartTime: Date.now() };
-    let finishedNow = false;
-    if (room.mode === '2v2') {
-      if (teamFinished(goties, room.mode, color)) {
-        const team = getTeamColors(room.mode, color);
-        if (!winners.some(w => Array.isArray(w) && w.join(',') === team.join(','))) winners = [...winners, team];
+      goties[color][idx] = { pos: newPos };
+      let finishedNow = false;
+      if (room.mode === '2v2') {
+        if (teamFinished(goties, room.mode, color)) {
+          const team = getTeamColors(room.mode, color);
+          if (!winners.some(w => Array.isArray(w) && w.join(',') === team.join(','))) winners = [...winners, team];
+          finishedNow = true;
+        }
+      } else if (!winners.includes(color) && allFinished(goties, color)) {
+        winners = [...winners, color];
         finishedNow = true;
       }
-    } else if (!winners.includes(color) && allFinished(goties, color)) {
-      winners = [...winners, color];
-      finishedNow = true;
-    }
-    const evKey = myUid + '-' + Date.now();
-    const moveEv = { type: 'move', color, idx, fromPos, toPos: newPos, captured, key: evKey, at: Date.now() };
-    updates.winners = winners; updates.lastEvent = moveEv;
-    const sixCounts = { ...(room.sixCounts || makeSixCounts()) };
-    if (roll !== 6) sixCounts[color] = 0;
-    updates.sixCounts = sixCounts;
-    if (finishedNow) {
-      updates.status = 'finished';
-      updates.winner = color;
-      updates.winnerTeam = room.mode === '2v2' ? getTeamColors(room.mode, color) : null;
-      updates.lastEvent = { type: 'win', color, key: evKey + 'w', at: Date.now() };
-    } else {
-      const extraTurn = roll === 6 || captured || reachedHome;
-      updates.currentTurn = extraTurn ? color : getNextTurn(color, players, goties, room.mode);
-    }
-    await update(ref(db, 'games/' + roomCode), updates);
+      const evKey = myUidLocal + '-' + Date.now();
+      const moveEv = { type: 'move', color, idx, fromPos, toPos: newPos, captured, key: evKey, at: Date.now() };
+      room.goties = goties;
+      room.pendingMove = null;
+      room.turnStartTime = Date.now();
+      room.winners = winners;
+      room.lastEvent = moveEv;
+      const sixCounts = { ...(room.sixCounts || makeSixCounts()) };
+      if (roll !== 6) sixCounts[color] = 0;
+      room.sixCounts = sixCounts;
+      if (finishedNow) {
+        room.status = 'finished';
+        room.winner = color;
+        room.winnerTeam = room.mode === '2v2' ? getTeamColors(room.mode, color) : null;
+        room.lastEvent = { type: 'win', color, key: evKey + 'w', at: Date.now() };
+      } else {
+        const extraTurn = roll === 6 || captured || reachedHome;
+        room.currentTurn = extraTurn ? color : getNextTurn(color, players, goties, room.mode);
+      }
+      txResult = room;
+      return room;
+    });
   }
 
   function secureDiceRoll() {
@@ -1967,29 +2084,44 @@ description: "Play India's favorite board game online! Create private rooms to p
       cube.style.setProperty('--df', FACE_T[val]); cube.classList.remove('spinning'); void cube.offsetWidth; cube.classList.add('spinning');
       cube.addEventListener('animationend', async () => {
         cube.classList.remove('spinning'); cube.style.transform = FACE_T[val]; rolling = false; bdw.classList.add('disabled');
-        const snap2 = await get(ref(db, 'games/' + roomCode)); const room2 = snap2.val(); if (!room2 || room2.currentTurn !== colorName || room2.pendingMove) return;
-        const goties = room2.goties || {}, gtArr = goties[colorName] || [];
-        const players = sortPlayers(Object.values(room2.players || {}));
-        const sixCounts = { ...(room2.sixCounts || makeSixCounts()) };
-        if (val === 6) {
-          sixCounts[colorName] = (sixCounts[colorName] || 0) + 1;
-          if (sixCounts[colorName] >= 3) {
-            sixCounts[colorName] = 0;
-            const nextTurn = getNextTurn(colorName, players, goties, room2.mode);
-            await update(ref(db, 'games/' + roomCode), { currentTurn: nextTurn, turnStartTime: Date.now(), pendingMove: null, sixCounts });
-            return;
+        const txRef = ref(db, 'games/' + roomCode);
+        await runTransaction(txRef, room2 => {
+          if (!room2 || room2.status !== 'playing' || room2.currentTurn !== colorName || room2.pendingMove) return room2;
+          const goties = room2.goties || {}, gtArr = goties[colorName] || [];
+          const players = sortPlayers(Object.values(room2.players || {}));
+          const sixCounts = { ...(room2.sixCounts || makeSixCounts()) };
+          if (val === 6) {
+            sixCounts[colorName] = (sixCounts[colorName] || 0) + 1;
+            if (sixCounts[colorName] >= 3) {
+              sixCounts[colorName] = 0;
+              room2.currentTurn = getNextTurn(colorName, players, goties, room2.mode);
+              room2.turnStartTime = Date.now();
+              room2.pendingMove = null;
+              room2.sixCounts = sixCounts;
+              return room2;
+            }
+          } else sixCounts[colorName] = 0;
+          const canAny = gtArr.some((gt, i) => canMove(colorName, i, gt.pos, val, goties));
+          if (!canAny) {
+            room2.currentTurn = getNextTurn(colorName, players, goties, room2.mode);
+            room2.turnStartTime = Date.now();
+            room2.pendingMove = null;
+            room2.sixCounts = sixCounts;
+            return room2;
           }
-        } else sixCounts[colorName] = 0;
-        const canAny = gtArr.some((gt, i) => canMove(colorName, i, gt.pos, val, goties));
-        if (!canAny) {
-          const nextTurn = getNextTurn(colorName, players, goties, room2.mode);
-          await update(ref(db, 'games/' + roomCode), { currentTurn: nextTurn, turnStartTime: Date.now(), pendingMove: null, sixCounts });
-          return;
+          room2.pendingMove = { uid: myUid, color: colorName, roll: val, key: evKey, at: Date.now() };
+          room2.turnStartTime = Date.now();
+          room2.sixCounts = sixCounts;
+          return room2;
+        });
+        const snap2 = await get(ref(db, 'games/' + roomCode));
+        const room3 = snap2.val();
+        if (room3 && room3.currentTurn === colorName && room3.pendingMove && room3.pendingMove.uid === myUid) {
+          pendingRoll = val; waitingForMove = true;
+          const players3 = sortPlayers(Object.values(room3.players || {}));
+          const playerMap = {}; players3.forEach(p => { if (p && p.color) playerMap[p.color] = p; });
+          applyTurn(colorName, playerMap, room3.goties || {}, val, room3);
         }
-        pendingRoll = val; waitingForMove = true;
-        await update(ref(db, 'games/' + roomCode), { pendingMove: { uid: myUid, color: colorName, roll: val, key: evKey, at: Date.now() }, turnStartTime: Date.now(), sixCounts });
-        const playerMap = {}; players.forEach(p => { if (p && p.color) playerMap[p.color] = p; });
-        applyTurn(colorName, playerMap, goties, val, room2);
       }, { once: true });
     });
   }
