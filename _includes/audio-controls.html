@@ -9,11 +9,10 @@
     align-items: center;
     justify-content: space-around;
     padding: 0 14px;
-    margin-bottom: 10px;
+    margin: 2px 0 8px 0;
     display: none;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   }
-
   .audio-btn {
     background: transparent;
     border: none;
@@ -30,20 +29,16 @@
     letter-spacing: 0.5px;
     text-transform: uppercase;
   }
-
   .audio-btn:hover {
     color: var(--gold);
     transform: scale(1.06);
   }
-
   .audio-btn:active {
     transform: scale(0.94);
   }
-
   .audio-btn.muted {
     color: #dc2626;
   }
-
   .audio-btn .icon-wrap {
     position: relative;
     display: inline-flex;
@@ -51,7 +46,6 @@
     justify-content: center;
     font-size: 1.0rem;
   }
-
   .audio-btn.muted .icon-wrap::after {
     content: '';
     position: absolute;
@@ -63,7 +57,6 @@
     transform: translateY(-50%) rotate(45deg);
     border-radius: 2px;
   }
-
   .voice-menu-overlay {
     position: fixed;
     top: 50%;
@@ -79,7 +72,6 @@
     font-family: 'Rajdhani', sans-serif;
     color: var(--gold2);
   }
-
   .voice-menu-header {
     display: flex;
     justify-content: space-between;
@@ -88,7 +80,6 @@
     padding-bottom: 8px;
     margin-bottom: 12px;
   }
-
   .voice-menu-header span {
     font-weight: 700;
     font-size: 1.1rem;
@@ -96,7 +87,6 @@
     letter-spacing: 1px;
     color: var(--gold);
   }
-
   .close-voice-btn {
     background: none;
     border: none;
@@ -106,16 +96,13 @@
     line-height: 1;
     transition: color 0.2s;
   }
-
   .close-voice-btn:hover {
     color: var(--gold);
   }
-
   .voice-players-list {
     max-height: 240px;
     overflow-y: auto;
   }
-
   .voice-player-item {
     display: flex;
     justify-content: space-between;
@@ -127,30 +114,25 @@
     background: #fdfdfd;
     transition: all 0.2s;
   }
-
   .voice-player-item:hover {
     background: #f8fafc;
     border-color: var(--gold);
   }
-
   .voice-player-info {
     display: flex;
     align-items: center;
     gap: 8px;
   }
-
   .voice-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
   }
-
   .voice-player-name {
     font-weight: 600;
     font-size: 0.95rem;
     color: var(--gold2);
   }
-
   .voice-mute-btn {
     background: transparent;
     border: none;
@@ -165,12 +147,10 @@
     border-radius: 50%;
     transition: all 0.2s;
   }
-
   .voice-mute-btn:hover {
     background: #f1f5f9;
     color: var(--gold);
   }
-
   .voice-mute-btn.muted {
     color: #dc2626;
     background: #fee2e2;
@@ -196,17 +176,14 @@
   window.isBgmEnabled = true;
   window.isSfxEnabled = true;
   window.isMicEnabled = false;
-
   window.lastVoicePlayers = [];
   window.lastVoiceMyUid = '';
-
   let myPeer = null;
   let myLocalStream = null;
   const connectedPeers = {};
   const remoteAudioElements = {};
   const localMutedPlayers = {};
   const voicePlayerCache = {};
-
   const COLOR_HEX = { red: '#c62828', green: '#2e7d32', yellow: '#f9a825', blue: '#1565c0' };
 
   function safeVoiceName(player, fallback) {
@@ -252,23 +229,33 @@
     if (btn) btn.classList.toggle('muted', !window.isSfxEnabled);
   };
 
-
-
-  window.initVoiceChat = async function (myUid) {
+  window.initVoiceChat = async function(myUid) {
     if (myPeer) return;
     await ensureMicStream();
-    myPeer = new Peer(myUid, { debug: 0 });
-    myPeer.on('error', err => {
-      console.error('PeerJS error:', err);
-    });
-    myPeer.on('call', async call => {
-      await ensureMicStream();
-      try {
-        if (myLocalStream) call.answer(myLocalStream);
-        else call.answer();
-      } catch (err) { }
-      handleRemoteCall(call);
-    });
+    
+    function connectPeer() {
+      myPeer = new Peer(myUid, { debug: 0 });
+      
+      myPeer.on('error', err => {
+        if (err.type === 'unavailable-id') {
+          setTimeout(() => {
+            if (myPeer) myPeer.destroy();
+            connectPeer();
+          }, 2000);
+        }
+      });
+
+      myPeer.on('call', async call => {
+        await ensureMicStream();
+        try {
+          if (myLocalStream) call.answer(myLocalStream);
+          else call.answer();
+        } catch (err) { }
+        handleRemoteCall(call);
+      });
+    }
+    
+    connectPeer();
   };
 
   window.toggleMic = async function () {
@@ -297,16 +284,13 @@
     const container = document.getElementById('voice-players-list');
     if (!container) return;
     container.innerHTML = '';
-
     const players = window.lastVoicePlayers || [];
     const myId = String(window.lastVoiceMyUid || '').trim();
     const otherPlayers = players.filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
-
     if (otherPlayers.length === 0) {
       container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.9rem;padding:12px;">No other players in room</div>';
       return;
     }
-
     otherPlayers.forEach(p => {
       const uid = getVoiceUid(p);
       const name = safeVoiceName(p, uid);
@@ -314,33 +298,26 @@
       const isOnline = p.isOnline !== false;
       const color = p.color || '';
       const colorDotStyle = color && COLOR_HEX[color] ? `background:${COLOR_HEX[color]}` : 'background:#64748b';
-
       const item = document.createElement('div');
       item.className = 'voice-player-item';
-
       const info = document.createElement('div');
       info.className = 'voice-player-info';
-
       const dot = document.createElement('div');
       dot.className = 'voice-dot';
       dot.style.cssText = colorDotStyle;
-
       const nameSpan = document.createElement('span');
       nameSpan.className = 'voice-player-name';
       nameSpan.textContent = name + (!isOnline ? ' (Offline)' : '');
       if (!isOnline) {
         nameSpan.style.color = '#94a3b8';
       }
-
       info.appendChild(dot);
       info.appendChild(nameSpan);
-
       const muteBtn = document.createElement('button');
       muteBtn.id = 'btn-mute-' + uid;
       muteBtn.className = 'voice-mute-btn' + (isMuted ? ' muted' : '');
       muteBtn.onclick = () => window.togglePlayerMute(uid);
       muteBtn.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
-
       item.appendChild(info);
       item.appendChild(muteBtn);
       container.appendChild(item);
