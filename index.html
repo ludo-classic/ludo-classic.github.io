@@ -1661,6 +1661,7 @@ description: "Play India's favorite board game online! Create private rooms to p
       const dot = document.createElement('div');
       dot.className = 'player-color-dot';
       dot.style.background = p ? ({ red: '#c62828', green: '#2e7d32', yellow: '#f9a825', blue: '#1565c0' }[p.color] || 'rgba(0,0,0,0.08)') : 'rgba(0,0,0,0.08)';
+      if (p && p.color) dot.dataset.color = p.color;
       const nm = document.createElement('div');
       nm.className = 'player-name-w' + (p ? '' : ' empty');
       nm.textContent = p ? (getSafePlayerName(p, 'Player ' + (i + 1)) + (p.isOnline === false ? ' (Offline)' : '')) : 'Waiting for player...';
@@ -2188,7 +2189,7 @@ description: "Play India's favorite board game online! Create private rooms to p
       if (fresh.length >= getSlots(room.mode)) { if (window.renderJoinAvailableColors) window.renderJoinAvailableColors([], null, 'Room is full'); return; }
       const used = new Set(fresh.map(p => p.color));
       const available = COLORS.filter(c => !used.has(c));
-      if (window.renderJoinAvailableColors) window.renderJoinAvailableColors(available, available.includes(window.selectedJoinColor) ? window.selectedJoinColor : available[0], null);
+      if (window.renderJoinAvailableColors) window.renderJoinAvailableColors(available, available.includes(window.selectedJoinColor) ? window.selectedJoinColor : available[0], null, room.mode);
       if (err) err.textContent = '';
     } catch (e) { if (window.renderJoinAvailableColors) window.renderJoinAvailableColors([], null, 'Could not load room'); }
   }
