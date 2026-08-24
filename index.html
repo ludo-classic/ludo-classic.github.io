@@ -905,13 +905,12 @@ description: "Play India's favorite board game online! Create private rooms to p
 {% include footer.html %}
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, set, get, update, onValue, remove, onDisconnect, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import { getDatabase, ref, set, get, update, onValue, remove, onDisconnect, runTransaction } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
   const app = initializeApp({ databaseURL: "https://talkrush-76259-default-rtdb.asia-southeast1.firebasedatabase.app" });
   const db = getDatabase(app);
 
-  // Time Sync Fix Added Here 
   let serverTimeOffset = 0;
   onValue(ref(db, '.info/serverTimeOffset'), snap => { serverTimeOffset = snap.val() || 0; });
   function getNow() { return Date.now() + serverTimeOffset; }
