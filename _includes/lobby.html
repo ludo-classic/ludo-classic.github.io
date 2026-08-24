@@ -63,8 +63,8 @@
   .player-you-tag{color:var(--gold);}
   .host-tag{color:#64748b;}
   .offline-tag{color:#e57373;margin-left:auto;}
-  .waiting-color-picker{margin-bottom:16px;}
-  .waiting-color-picker label{display:block;color:#475569;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-weight:700;text-align:center;}
+  .waiting-color-picker{margin-bottom:16px;padding-top:8px;border-top:1px dashed var(--pbr);}
+  .waiting-color-picker label{display:block;color:#475569;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;font-weight:700;text-align:center;}
   .waiting-footer{text-align:center;}
   .waiting-dots{color:#64748b;font-size:.78rem;letter-spacing:3px;animation:blink 1.4s ease-in-out infinite;}
   @keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
@@ -129,13 +129,20 @@
       <div class="room-code" id="display-room-code" onclick="copyCode()">XXXX</div>
       <div class="room-mode-badge" id="display-mode">1v1</div>
     </div>
+    
     <div class="players-list" id="players-list"></div>
+
+    <div id="waiting-color-section" class="waiting-color-picker" style="display:none;">
+      <label>Change Color</label>
+      <div class="color-grid" id="waiting-color-grid"></div>
+    </div>
+
     <div class="waiting-footer">
       <div class="waiting-dots" id="waiting-text">Waiting for players…</div>
       <div class="btn-row">
-        <button class="ghost-btn" onclick="copyCode()">⧉ Copy Code</button>
-        <button class="ghost-btn" onclick="shareLink()">↗ Share Link</button>
-        <button class="danger-btn" onclick="leaveRoom()">Leave</button>
+        <button class="ghost-btn" onclick="copyCode()"><i class="fas fa-copy"></i> Copy</button>
+        <button class="ghost-btn" onclick="shareLink()"><i class="fas fa-share-nodes"></i> Share</button>
+        <button class="danger-btn" onclick="leaveRoom()"><i class="fas fa-right-from-bracket"></i> Leave</button>
       </div>
     </div>
   </div>
@@ -271,11 +278,6 @@
     updateTeamNote('join-team-note',window.lastJoinRoomMode,window.selectedJoinColor);
   };
 
-  window.setJoinRoomMode=function(mode){
-    window.lastJoinRoomMode=normalizeLobbyMode(mode);
-    window.renderJoinAvailableColors(window.lastJoinAvailableColors,window.selectedJoinColor,null,window.lastJoinRoomMode);
-  };
-
   function getWaitingRoomMode(){
     const badge=document.getElementById('display-mode');
     const candidates=[
@@ -292,6 +294,20 @@
     }
     return'1v1';
   }
+
+  window.renderWaitingAvailableColors=function(availableColors,selectedColor){
+    const section=document.getElementById('waiting-color-section');
+    if(!section)return;
+    const safeColors=Array.isArray(availableColors)?availableColors:[];
+    if(safeColors.length===0){
+      section.style.display='none';
+      return;
+    }
+    section.style.display='block';
+    renderColorGrid('waiting-color-grid',safeColors,selectedColor,function(color){
+      if(window.changeWaitingColor)window.changeWaitingColor(color);
+    },'No colors available',getWaitingRoomMode());
+  };
 
   function detectSlotColor(slot){
     const direct=String(slot.dataset.color||'').toLowerCase();
