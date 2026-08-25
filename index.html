@@ -297,6 +297,7 @@ description: "Play India's favorite board game online! Create private rooms to p
     justify-content: space-between;
     width: 100%;
     max-width: 740px;
+    padding: 0 4px;
     gap: 6px;
   }
 
@@ -797,6 +798,10 @@ description: "Play India's favorite board game online! Create private rooms to p
   @media(max-width:700px) {
     :root { --ds: 30px; --goti-size: 22px; }
     .board-wrap { padding: 6px; border-radius: 12px; width: 100%; }
+  #game-screen { 
+     padding: 8px 0; 
+     gap: 5px; 
+  }
     .ludo-board { grid-template-columns: repeat(15, calc((100vw - 32px)/15)); grid-template-rows: repeat(15, calc((100vw - 32px)/15)); gap: 1px; padding: 1px; }
     .cell { width: calc((100vw - 32px)/15); height: calc((100vw - 32px)/15); border-radius: 2px; gap: 1px; }
     .win-house { width: calc((100vw - 32px)/15*3); height: calc((100vw - 32px)/15*3); }
