@@ -1,3 +1,5 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+
 <style>
   #win-overlay { 
     display: none; 
@@ -8,19 +10,26 @@
     flex-direction: column; 
     align-items: center; 
     justify-content: center; 
-    gap: 16px; 
     backdrop-filter: blur(6px); 
     overflow: hidden;
   }
   #win-overlay.active { display: flex; }
 
-  .win-lottie-bg {
+  #win-lottie-container {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     pointer-events: none;
     z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #win-lottie-container svg {
+    width: 100% !important;
+    height: 100% !important;
     object-fit: cover;
   }
 
@@ -178,17 +187,7 @@
 </style>
 
 <div id="win-overlay">
-  <!-- Full Screen Lottie Animation -->
-  <lottie-player 
-    class="win-lottie-bg"
-    src="/assets/win-animation.json" 
-    background="transparent" 
-    speed="1" 
-    loop 
-    autoplay>
-  </lottie-player>
-
-  <!-- Foreground Content -->
+  <div id="win-lottie-container"></div>
   <div class="win-content">
     <div class="win-emoji">🏆</div>
     <div class="win-title" id="win-title">PLAYER WINS!</div>
@@ -207,3 +206,31 @@
     </div>
   </div>
 </div>
+
+<script>
+  let winLottieAnim = null;
+
+  function loadWinAnimation() {
+    const container = document.getElementById('win-lottie-container');
+    if (!container || !window.lottie) return;
+    
+    if (winLottieAnim) {
+      winLottieAnim.goToAndPlay(0, true);
+      return;
+    }
+
+    winLottieAnim = lottie.loadAnimation({
+      container: container,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: "{{ '/assets/win-animation.json' | relative_url }}"
+    });
+  }
+
+  const origShowWin = window.showWin;
+  window.showWin = function(winnerColor, room) {
+    if (typeof origShowWin === 'function') origShowWin(winnerColor, room);
+    loadWinAnimation();
+  };
+</script>
