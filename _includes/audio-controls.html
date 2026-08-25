@@ -1,51 +1,79 @@
 <style>
-  .audio-bar-wrapper {
-    width: 100%;
-    max-width: 740px;
-    height: 46px;
-    background: #ffffff;
-    border: 1px solid var(--pbr);
-    border-radius: 10px;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 14px;
-    margin: 2px 0 8px 0;
-    display: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  :root {
+    --gold: #d97706;
+    --gold2: #b45309;
+    --pbr: #e2e8f0;
+    --bg-card: #ffffff;
+    --text-muted: #64748b;
   }
+
+  .audio-bar-wrapper {
+    position: fixed;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 24px);
+    max-width: 600px;
+    height: 48px;
+    background: var(--bg-card);
+    border: 1px solid var(--pbr);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    box-sizing: border-box;
+  }
+
   .audio-btn {
+    flex: 1 1 0;
+    height: 100%;
     background: transparent;
     border: none;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
+    gap: 6px;
     color: var(--gold2);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     outline: none;
-    font-family: 'Rajdhani', sans-serif;
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-weight: 700;
     font-size: 0.85rem;
     letter-spacing: 0.5px;
     text-transform: uppercase;
+    border-radius: 8px;
+    padding: 0 4px;
   }
+
   .audio-btn:hover {
     color: var(--gold);
-    transform: scale(1.06);
+    background: rgba(217, 119, 6, 0.06);
   }
+
   .audio-btn:active {
-    transform: scale(0.94);
+    transform: scale(0.95);
   }
+
   .audio-btn.muted {
     color: #dc2626;
   }
+
   .audio-btn .icon-wrap {
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.0rem;
   }
+
+  .audio-btn .icon-wrap svg {
+    width: 18px;
+    height: 18px;
+  }
+
   .audio-btn.muted .icon-wrap::after {
     content: '';
     position: absolute;
@@ -57,21 +85,24 @@
     transform: translateY(-50%) rotate(45deg);
     border-radius: 2px;
   }
+
   .voice-menu-overlay {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 320px;
-    background: #ffffff;
+    width: min(340px, calc(100vw - 32px));
+    background: var(--bg-card);
     border: 2px solid var(--gold);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
     z-index: 10000;
     padding: 16px;
     font-family: 'Rajdhani', sans-serif;
     color: var(--gold2);
+    box-sizing: border-box;
   }
+
   .voice-menu-header {
     display: flex;
     justify-content: space-between;
@@ -80,64 +111,75 @@
     padding-bottom: 8px;
     margin-bottom: 12px;
   }
+
   .voice-menu-header span {
     font-weight: 700;
     font-size: 1.1rem;
-    text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--gold);
   }
+
   .close-voice-btn {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     color: var(--gold2);
     cursor: pointer;
     line-height: 1;
     transition: color 0.2s;
   }
+
   .close-voice-btn:hover {
     color: var(--gold);
   }
+
   .voice-players-list {
     max-height: 240px;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
+
   .voice-player-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 10px;
-    border-radius: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
     border: 1px solid var(--pbr);
-    margin-bottom: 8px;
     background: #fdfdfd;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
   }
+
   .voice-player-item:hover {
     background: #f8fafc;
     border-color: var(--gold);
   }
+
   .voice-player-info {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
+
   .voice-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
+    flex-shrink: 0;
   }
+
   .voice-player-name {
     font-weight: 600;
     font-size: 0.95rem;
     color: var(--gold2);
+    word-break: break-all;
   }
+
   .voice-mute-btn {
     background: transparent;
     border: none;
-    font-size: 1rem;
-    color: var(--gold2);
     cursor: pointer;
     width: 32px;
     height: 32px;
@@ -146,22 +188,66 @@
     justify-content: center;
     border-radius: 50%;
     transition: all 0.2s;
+    color: var(--gold2);
   }
+
+  .voice-mute-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
   .voice-mute-btn:hover {
     background: #f1f5f9;
     color: var(--gold);
   }
+
   .voice-mute-btn.muted {
     color: #dc2626;
     background: #fee2e2;
   }
+
+  @media (max-width: 480px) {
+    .audio-bar-wrapper {
+      height: 44px;
+      padding: 0 4px;
+      bottom: 8px;
+    }
+    .audio-btn {
+      font-size: 0.75rem;
+      gap: 4px;
+    }
+    .audio-btn .icon-wrap svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
 </style>
 
 <div class="audio-bar-wrapper" id="audio-bar-wrapper">
-  <button class="audio-btn" id="btn-bgm" onclick="window.toggleBGM()"><span class="icon-wrap"><i class="fas fa-music"></i></span> <span>MSC</span></button>
-  <button class="audio-btn" id="btn-sfx" onclick="window.toggleSFX()"><span class="icon-wrap"><i class="fas fa-volume-up"></i></span> <span>SFX</span></button>
-  <button class="audio-btn muted" id="btn-mic" onclick="window.toggleMic()"><span class="icon-wrap"><i class="fas fa-microphone"></i></span> <span>MIC</span></button>
-  <button class="audio-btn" id="btn-speaker" onclick="window.toggleVoiceMenu()"><span class="icon-wrap"><i class="fas fa-headphones"></i></span> <span>SPKR</span></button>
+  <button class="audio-btn" id="btn-bgm" onclick="window.toggleBGM()">
+    <span class="icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    </span>
+    <span>MSC</span>
+  </button>
+  <button class="audio-btn" id="btn-sfx" onclick="window.toggleSFX()">
+    <span class="icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+    </span>
+    <span>SFX</span>
+  </button>
+  <button class="audio-btn muted" id="btn-mic" onclick="window.toggleMic()">
+    <span class="icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+    </span>
+    <span>MIC</span>
+  </button>
+  <button class="audio-btn" id="btn-speaker" onclick="window.toggleVoiceMenu()">
+    <span class="icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><path d="M21 14a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2h3z"/><path d="M3 14a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-1a2 2 0 0 0-2-2H3z"/></svg>
+    </span>
+    <span>SPKR</span>
+  </button>
 </div>
 
 <div class="voice-menu-overlay" id="voice-menu-overlay" style="display: none;">
@@ -178,6 +264,7 @@
   window.isMicEnabled = false;
   window.lastVoicePlayers = [];
   window.lastVoiceMyUid = '';
+  
   let myPeer = null;
   let myLocalStream = null;
   const connectedPeers = {};
@@ -185,6 +272,9 @@
   const localMutedPlayers = {};
   const voicePlayerCache = {};
   const COLOR_HEX = { red: '#c62828', green: '#2e7d32', yellow: '#f9a825', blue: '#1565c0' };
+
+  const SVG_SPEAKER_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>';
+  const SVG_SPEAKER_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
 
   function safeVoiceName(player, fallback) {
     const raw = player && (player.name || player.displayName || player.username || player.nick);
@@ -219,7 +309,7 @@
     if (!window.isBgmEnabled) {
       bgm.pause();
     } else if (document.getElementById('game-screen')?.classList.contains('active')) {
-      bgm.play().catch(() => { });
+      bgm.play().catch(() => {});
     }
   };
 
@@ -229,13 +319,13 @@
     if (btn) btn.classList.toggle('muted', !window.isSfxEnabled);
   };
 
-  window.initVoiceChat = async function(myUid) {
+  window.initVoiceChat = async function (myUid) {
     if (myPeer) return;
     await ensureMicStream();
-    
+
     function connectPeer() {
       myPeer = new Peer(myUid, { debug: 0 });
-      
+
       myPeer.on('error', err => {
         if (err.type === 'unavailable-id') {
           setTimeout(() => {
@@ -250,11 +340,11 @@
         try {
           if (myLocalStream) call.answer(myLocalStream);
           else call.answer();
-        } catch (err) { }
+        } catch (err) {}
         handleRemoteCall(call);
       });
     }
-    
+
     connectPeer();
   };
 
@@ -262,7 +352,7 @@
     await ensureMicStream();
     if (!myLocalStream) return;
     window.isMicEnabled = !window.isMicEnabled;
-    myLocalStream.getAudioTracks().forEach(track => track.enabled = window.isMicEnabled);
+    myLocalStream.getAudioTracks().forEach(track => (track.enabled = window.isMicEnabled));
     const btn = document.getElementById('btn-mic');
     if (btn) btn.classList.toggle('muted', !window.isMicEnabled);
     if (window.syncVoicePeers && window.lastVoicePlayers) {
@@ -287,10 +377,12 @@
     const players = window.lastVoicePlayers || [];
     const myId = String(window.lastVoiceMyUid || '').trim();
     const otherPlayers = players.filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
+
     if (otherPlayers.length === 0) {
       container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.9rem;padding:12px;">No other players in room</div>';
       return;
     }
+
     otherPlayers.forEach(p => {
       const uid = getVoiceUid(p);
       const name = safeVoiceName(p, uid);
@@ -298,26 +390,31 @@
       const isOnline = p.isOnline !== false;
       const color = p.color || '';
       const colorDotStyle = color && COLOR_HEX[color] ? `background:${COLOR_HEX[color]}` : 'background:#64748b';
+
       const item = document.createElement('div');
       item.className = 'voice-player-item';
+
       const info = document.createElement('div');
       info.className = 'voice-player-info';
+
       const dot = document.createElement('div');
       dot.className = 'voice-dot';
       dot.style.cssText = colorDotStyle;
+
       const nameSpan = document.createElement('span');
       nameSpan.className = 'voice-player-name';
       nameSpan.textContent = name + (!isOnline ? ' (Offline)' : '');
-      if (!isOnline) {
-        nameSpan.style.color = '#94a3b8';
-      }
+      if (!isOnline) nameSpan.style.color = '#94a3b8';
+
       info.appendChild(dot);
       info.appendChild(nameSpan);
+
       const muteBtn = document.createElement('button');
       muteBtn.id = 'btn-mute-' + uid;
       muteBtn.className = 'voice-mute-btn' + (isMuted ? ' muted' : '');
       muteBtn.onclick = () => window.togglePlayerMute(uid);
-      muteBtn.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+      muteBtn.innerHTML = isMuted ? SVG_SPEAKER_OFF : SVG_SPEAKER_ON;
+
       item.appendChild(info);
       item.appendChild(muteBtn);
       container.appendChild(item);
@@ -328,7 +425,9 @@
     targetUid = String(targetUid || '').trim();
     if (!targetUid) return;
     localMutedPlayers[targetUid] = !localMutedPlayers[targetUid];
-    if (remoteAudioElements[targetUid]) remoteAudioElements[targetUid].muted = !!localMutedPlayers[targetUid];
+    if (remoteAudioElements[targetUid]) {
+      remoteAudioElements[targetUid].muted = !!localMutedPlayers[targetUid];
+    }
     window.updateVoiceMenu();
   };
 
@@ -336,6 +435,7 @@
     const targetUid = String(call.peer || '').trim();
     if (!targetUid) return;
     connectedPeers[targetUid] = call;
+
     call.on('stream', remoteStream => {
       if (!remoteAudioElements[targetUid]) {
         const audio = document.createElement('audio');
@@ -346,7 +446,9 @@
         remoteAudioElements[targetUid] = audio;
       }
       remoteAudioElements[targetUid].srcObject = remoteStream;
+      remoteAudioElements[targetUid].play().catch(err => console.warn('Autoplay blocked:', err));
     });
+
     call.on('close', () => cleanupRemote(targetUid));
     call.on('error', () => cleanupRemote(targetUid));
   }
@@ -359,7 +461,7 @@
       delete remoteAudioElements[targetUid];
     }
     if (connectedPeers[targetUid]) {
-      try { connectedPeers[targetUid].close(); } catch (err) { }
+      try { connectedPeers[targetUid].close(); } catch (err) {}
       delete connectedPeers[targetUid];
     }
   }
@@ -370,7 +472,11 @@
     const myId = String(myUid || '').trim();
     const onlinePlayers = (Array.isArray(players) ? players : []).filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
     const activeUids = new Set(onlinePlayers.map(getVoiceUid));
-    Object.keys(connectedPeers).forEach(uid => { if (!activeUids.has(uid)) cleanupRemote(uid); });
+
+    Object.keys(connectedPeers).forEach(uid => {
+      if (!activeUids.has(uid)) cleanupRemote(uid);
+    });
+
     onlinePlayers.forEach(p => {
       const uid = getVoiceUid(p);
       voicePlayerCache[uid] = p;
@@ -378,16 +484,17 @@
         try {
           const call = myPeer.call(uid, myLocalStream);
           if (call) handleRemoteCall(call);
-        } catch (err) { }
+        } catch (err) {}
       }
     });
+
     window.updateVoiceMenu();
   };
 
   window.closeVoiceChat = function () {
     Object.keys(connectedPeers).forEach(cleanupRemote);
     if (myPeer) {
-      try { myPeer.destroy(); } catch (err) { }
+      try { myPeer.destroy(); } catch (err) {}
     }
     if (myLocalStream) {
       myLocalStream.getTracks().forEach(track => track.stop());
