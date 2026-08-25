@@ -484,8 +484,8 @@ description: "Play India's favorite board game online! Create private rooms to p
 
   .home-card.red { background: linear-gradient(135deg, var(--rd), var(--r)); grid-column: 1/7; grid-row: 1/7; }
   .home-card.green { background: linear-gradient(135deg, var(--gd), var(--g)); grid-column: 10/16; grid-row: 1/7; }
-  .home-card.yellow { background: linear-gradient(135deg, var(--yd), var(--y)); grid-column: 1/7; grid-row: 10/16; }
-  .home-card.blue { background: linear-gradient(135deg, var(--bd), var(--b)); grid-column: 10/16; grid-row: 10/16; }
+  .home-card.blue { background: linear-gradient(135deg, var(--bd), var(--b)); grid-column: 1/7; grid-row: 10/16; }
+  .home-card.yellow { background: linear-gradient(135deg, var(--yd), var(--y)); grid-column: 10/16; grid-row: 10/16; }
 
   .home-cell {
     border-radius: 3px;
@@ -798,10 +798,10 @@ description: "Play India's favorite board game online! Create private rooms to p
   @media(max-width:700px) {
     :root { --ds: 30px; --goti-size: 22px; }
     .board-wrap { padding: 6px; border-radius: 12px; width: 100%; }
-  #game-screen { 
-     padding: 8px 0; 
-     gap: 5px; 
-  }
+    #game-screen { 
+      padding: 8px 0; 
+      gap: 5px; 
+    }
     .ludo-board { grid-template-columns: repeat(15, calc((100vw - 32px)/15)); grid-template-rows: repeat(15, calc((100vw - 32px)/15)); gap: 1px; padding: 1px; }
     .cell { width: calc((100vw - 32px)/15); height: calc((100vw - 32px)/15); border-radius: 2px; gap: 1px; }
     .win-house { width: calc((100vw - 32px)/15*3); height: calc((100vw - 32px)/15*3); }
@@ -809,7 +809,7 @@ description: "Play India's favorite board game online! Create private rooms to p
     .home-card { padding: 3px; gap: 2px; }
     .game-room-badge { font-size: .62rem; padding: 3px 6px; }
     .exit-game-btn { font-size: .6rem; padding: 3px 7px; }
-    .name-bar { gap: 3px; }
+    .name-bar { padding: 0 4px; gap: 3px; }
     .ptag { padding: 5px 8px; font-size: .72rem; gap: 5px; }
     .turn-label { font-size: .72rem; letter-spacing: 1px; padding: 4px 10px; }
     .emoji-btn { font-size: 1.3rem; padding: 4px 8px; }
@@ -857,16 +857,16 @@ description: "Play India's favorite board game online! Create private rooms to p
       </div>
       <div class="home-card red" id="card-r"></div>
       <div class="home-card green" id="card-g"></div>
-      <div class="home-card yellow" id="card-y"></div>
       <div class="home-card blue" id="card-b"></div>
+      <div class="home-card yellow" id="card-y"></div>
     </div>
   </div>
   <div class="name-bar">
-    <div class="ptag ptag-yellow hidden" id="ptag-yellow">
-      <div class="ptag-dot" style="background:#f9a825"></div><span id="ptag-yellow-name">—</span>
-    </div>
     <div class="ptag ptag-blue hidden" id="ptag-blue">
       <div class="ptag-dot" style="background:#1565c0"></div><span id="ptag-blue-name">—</span>
+    </div>
+    <div class="ptag ptag-yellow hidden" id="ptag-yellow">
+      <div class="ptag-dot" style="background:#f9a825"></div><span id="ptag-yellow-name">—</span>
     </div>
   </div>
   <div class="turn-bar">
@@ -924,8 +924,8 @@ description: "Play India's favorite board game online! Create private rooms to p
   const COLOR_CFG = {
     red: { startIdx: 0, homeCol: [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6]], cls: 'goti-r', homeCells: [[1, 1], [1, 4], [4, 1], [4, 4]] },
     green: { startIdx: 13, homeCol: [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7]], cls: 'goti-g', homeCells: [[1, 10], [1, 13], [4, 10], [4, 13]] },
-    yellow: { startIdx: 39, homeCol: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7]], cls: 'goti-y', homeCells: [[10, 1], [10, 4], [13, 1], [13, 4]] },
-    blue: { startIdx: 26, homeCol: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8]], cls: 'goti-b', homeCells: [[10, 10], [10, 13], [13, 10], [13, 13]] }
+    yellow: { startIdx: 26, homeCol: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8]], cls: 'goti-y', homeCells: [[10, 10], [10, 13], [13, 10], [13, 13]] },
+    blue: { startIdx: 39, homeCol: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7]], cls: 'goti-b', homeCells: [[10, 1], [10, 4], [13, 1], [13, 4]] }
   };
 
   const COLOR_GRAD = {
@@ -1725,12 +1725,12 @@ description: "Play India's favorite board game online! Create private rooms to p
     const cls = (r, c) => {
       if (r === 6 && c === 1) return 'p s-r exit-star';
       if (r === 1 && c === 8) return 'p s-g exit-star';
-      if (r === 8 && c === 13) return 'p s-b exit-star';
-      if (r === 13 && c === 6) return 'p s-y exit-star';
+      if (r === 8 && c === 13) return 'p s-y exit-star';
+      if (r === 13 && c === 6) return 'p s-b exit-star';
       if (r === 7 && c >= 1 && c <= 5) return 'f-r';
       if (c === 7 && r >= 1 && r <= 5) return 'f-g';
-      if (r === 7 && c >= 9 && c <= 13) return 'f-b';
-      if (c === 7 && r >= 9 && r <= 13) return 'f-y';
+      if (r === 7 && c >= 9 && c <= 13) return 'f-y';
+      if (c === 7 && r >= 9 && r <= 13) return 'f-b';
       const k = r + ',' + c; if (SS.has(k)) return 'safe';
       return 'p';
     };
