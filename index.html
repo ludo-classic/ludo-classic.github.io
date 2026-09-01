@@ -28,7 +28,7 @@ description: "Play India's favorite board game online! Create private rooms to p
     --ds: 38px;
     --pb: #ffffff;
     --pbr: #e2e8f0;
-    --goti-size: 28px;
+    --goti-size: 30px;
   }
 
   * {
@@ -193,8 +193,15 @@ description: "Play India's favorite board game online! Create private rooms to p
   }
 
   @keyframes blink {
-    0%, 100% { opacity: .3 }
-    50% { opacity: 1 }
+
+    0%,
+    100% {
+      opacity: .3
+    }
+
+    50% {
+      opacity: 1
+    }
   }
 
   .btn-row {
@@ -339,14 +346,41 @@ description: "Play India's favorite board game online! Create private rooms to p
     box-shadow: 0 0 5px currentColor;
   }
 
-  .ptag-red { color: var(--rd); }
-  .ptag-red.active { border-color: rgba(198, 40, 40, .7); box-shadow: 0 0 12px rgba(198, 40, 40, .15); }
-  .ptag-green { color: var(--gd); }
-  .ptag-green.active { border-color: rgba(46, 125, 50, .7); box-shadow: 0 0 12px rgba(46, 125, 50, .15); }
-  .ptag-yellow { color: var(--yd); }
-  .ptag-yellow.active { border-color: rgba(249, 168, 37, .7); box-shadow: 0 0 12px rgba(249, 168, 37, .15); }
-  .ptag-blue { color: var(--bd); }
-  .ptag-blue.active { border-color: rgba(21, 101, 192, .7); box-shadow: 0 0 12px rgba(21, 101, 192, .15); }
+  .ptag-red {
+    color: var(--rd);
+  }
+
+  .ptag-red.active {
+    border-color: rgba(198, 40, 40, .7);
+    box-shadow: 0 0 12px rgba(198, 40, 40, .15);
+  }
+
+  .ptag-green {
+    color: var(--gd);
+  }
+
+  .ptag-green.active {
+    border-color: rgba(46, 125, 50, .7);
+    box-shadow: 0 0 12px rgba(46, 125, 50, .15);
+  }
+
+  .ptag-yellow {
+    color: var(--yd);
+  }
+
+  .ptag-yellow.active {
+    border-color: rgba(249, 168, 37, .7);
+    box-shadow: 0 0 12px rgba(249, 168, 37, .15);
+  }
+
+  .ptag-blue {
+    color: var(--bd);
+  }
+
+  .ptag-blue.active {
+    border-color: rgba(21, 101, 192, .7);
+    box-shadow: 0 0 12px rgba(21, 101, 192, .15);
+  }
 
   .turn-bar {
     width: 100%;
@@ -407,16 +441,53 @@ description: "Play India's favorite board game online! Create private rooms to p
     gap: 2px;
   }
 
-  .f-r { background: var(--r); box-shadow: inset 0 0 0 1px var(--rd); }
-  .f-g { background: var(--g); box-shadow: inset 0 0 0 1px var(--gd); }
-  .f-y { background: var(--y); box-shadow: inset 0 0 0 1px var(--yd); }
-  .f-b { background: var(--b); box-shadow: inset 0 0 0 1px var(--bd); }
-  .s-r { background: var(--r) !important; box-shadow: inset 0 0 0 2px var(--rd) !important; }
-  .s-g { background: var(--g) !important; box-shadow: inset 0 0 0 2px var(--gd) !important; }
-  .s-y { background: var(--y) !important; box-shadow: inset 0 0 0 2px var(--yd) !important; }
-  .s-b { background: var(--b) !important; box-shadow: inset 0 0 0 2px var(--bd) !important; }
-  .p { background: var(--path); }
-  .safe { background: var(--path); }
+  .f-r {
+    background: var(--r);
+    box-shadow: inset 0 0 0 1px var(--rd);
+  }
+
+  .f-g {
+    background: var(--g);
+    box-shadow: inset 0 0 0 1px var(--gd);
+  }
+
+  .f-y {
+    background: var(--y);
+    box-shadow: inset 0 0 0 1px var(--yd);
+  }
+
+  .f-b {
+    background: var(--b);
+    box-shadow: inset 0 0 0 1px var(--bd);
+  }
+
+  .s-r {
+    background: var(--r) !important;
+    box-shadow: inset 0 0 0 2px var(--rd) !important;
+  }
+
+  .s-g {
+    background: var(--g) !important;
+    box-shadow: inset 0 0 0 2px var(--gd) !important;
+  }
+
+  .s-y {
+    background: var(--y) !important;
+    box-shadow: inset 0 0 0 2px var(--yd) !important;
+  }
+
+  .s-b {
+    background: var(--b) !important;
+    box-shadow: inset 0 0 0 2px var(--bd) !important;
+  }
+
+  .p {
+    background: var(--path);
+  }
+
+  .safe {
+    background: var(--path);
+  }
 
   .safe::after,
   .exit-star::after {
@@ -482,10 +553,29 @@ description: "Play India's favorite board game online! Create private rooms to p
     filter: grayscale(100%);
   }
 
-  .home-card.red { background: linear-gradient(135deg, var(--rd), var(--r)); grid-column: 1/7; grid-row: 1/7; }
-  .home-card.green { background: linear-gradient(135deg, var(--gd), var(--g)); grid-column: 10/16; grid-row: 1/7; }
-  .home-card.blue { background: linear-gradient(135deg, var(--bd), var(--b)); grid-column: 1/7; grid-row: 10/16; }
-  .home-card.yellow { background: linear-gradient(135deg, var(--yd), var(--y)); grid-column: 10/16; grid-row: 10/16; }
+  .home-card.red {
+    background: linear-gradient(135deg, var(--rd), var(--r));
+    grid-column: 1/7;
+    grid-row: 1/7;
+  }
+
+  .home-card.green {
+    background: linear-gradient(135deg, var(--gd), var(--g));
+    grid-column: 10/16;
+    grid-row: 1/7;
+  }
+
+  .home-card.blue {
+    background: linear-gradient(135deg, var(--bd), var(--b));
+    grid-column: 1/7;
+    grid-row: 10/16;
+  }
+
+  .home-card.yellow {
+    background: linear-gradient(135deg, var(--yd), var(--y));
+    grid-column: 10/16;
+    grid-row: 10/16;
+  }
 
   .home-cell {
     border-radius: 3px;
@@ -510,7 +600,9 @@ description: "Play India's favorite board game online! Create private rooms to p
     pointer-events: none;
   }
 
-  .goti:hover { transform: scale(1.18); }
+  .goti:hover {
+    transform: scale(1.18);
+  }
 
   .goti.selectable {
     animation: pulse .7s ease-in-out infinite alternate;
@@ -519,17 +611,35 @@ description: "Play India's favorite board game online! Create private rooms to p
     pointer-events: all;
   }
 
-  .goti.selectable:hover { transform: scale(1.18); }
-
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(255, 255, 0, .85), 0 2px 6px rgba(0, 0, 0, .4); }
-    100% { box-shadow: 0 0 0 7px rgba(255, 255, 0, 0), 0 2px 6px rgba(0, 0, 0, .4); }
+  .goti.selectable:hover {
+    transform: scale(1.18);
   }
 
-  .goti-r { background: radial-gradient(circle at 35% 35%, var(--rl), var(--rd)); }
-  .goti-g { background: radial-gradient(circle at 35% 35%, var(--gl), var(--gd)); }
-  .goti-y { background: radial-gradient(circle at 35% 35%, var(--yl), var(--yd)); }
-  .goti-b { background: radial-gradient(circle at 35% 35%, var(--bl), var(--bd)); }
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 255, 0, .85), 0 2px 6px rgba(0, 0, 0, .4);
+    }
+
+    100% {
+      box-shadow: 0 0 0 7px rgba(255, 255, 0, 0), 0 2px 6px rgba(0, 0, 0, .4);
+    }
+  }
+
+  .goti-r {
+    background: radial-gradient(circle at 35% 35%, var(--rl), var(--rd));
+  }
+
+  .goti-g {
+    background: radial-gradient(circle at 35% 35%, var(--gl), var(--gd));
+  }
+
+  .goti-y {
+    background: radial-gradient(circle at 35% 35%, var(--yl), var(--yd));
+  }
+
+  .goti-b {
+    background: radial-gradient(circle at 35% 35%, var(--bl), var(--bd));
+  }
 
   .token {
     width: var(--goti-size);
@@ -539,10 +649,21 @@ description: "Play India's favorite board game online! Create private rooms to p
     border: 2px solid rgba(255, 255, 255, .8);
   }
 
-  .t-r { background: radial-gradient(circle at 35% 35%, var(--rl), var(--rd)); }
-  .t-g { background: radial-gradient(circle at 35% 35%, var(--gl), var(--gd)); }
-  .t-y { background: radial-gradient(circle at 35% 35%, var(--yl), var(--yd)); }
-  .t-b { background: radial-gradient(circle at 35% 35%, var(--bl), var(--bd)); }
+  .t-r {
+    background: radial-gradient(circle at 35% 35%, var(--rl), var(--rd));
+  }
+
+  .t-g {
+    background: radial-gradient(circle at 35% 35%, var(--gl), var(--gd));
+  }
+
+  .t-y {
+    background: radial-gradient(circle at 35% 35%, var(--yl), var(--yd));
+  }
+
+  .t-b {
+    background: radial-gradient(circle at 35% 35%, var(--bl), var(--bd));
+  }
 
   .token.selectable {
     animation: pulse-home .7s ease-in-out infinite alternate;
@@ -550,8 +671,13 @@ description: "Play India's favorite board game online! Create private rooms to p
   }
 
   @keyframes pulse-home {
-    0% { box-shadow: 0 0 0 0 rgba(255, 255, 0, .9), 0 3px 7px rgba(0, 0, 0, .4); }
-    100% { box-shadow: 0 0 0 8px rgba(255, 255, 0, 0), 0 3px 7px rgba(0, 0, 0, .4); }
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 255, 0, .9), 0 3px 7px rgba(0, 0, 0, .4);
+    }
+
+    100% {
+      box-shadow: 0 0 0 8px rgba(255, 255, 0, 0), 0 3px 7px rgba(0, 0, 0, .4);
+    }
   }
 
   .stack-badge {
@@ -599,22 +725,50 @@ description: "Play India's favorite board game online! Create private rooms to p
     opacity: 0;
   }
 
-  .goti-hop::after { opacity: 1; }
-  .goti-hop { animation: hopArc .26s cubic-bezier(.34, 1.56, .64, 1); }
-
-  @keyframes hopArc {
-    0% { transform: scale(1, 1); }
-    35% { transform: scale(1.2, 0.82); }
-    65% { transform: scale(0.9, 1.12); }
-    100% { transform: scale(1, 1); }
+  .goti-hop::after {
+    opacity: 1;
   }
 
-  .goti-capture-pop { animation: capturePop .3s ease-out; }
+  .goti-hop {
+    animation: hopArc .26s cubic-bezier(.34, 1.56, .64, 1);
+  }
+
+  @keyframes hopArc {
+    0% {
+      transform: scale(1, 1);
+    }
+
+    35% {
+      transform: scale(1.2, 0.82);
+    }
+
+    65% {
+      transform: scale(0.9, 1.12);
+    }
+
+    100% {
+      transform: scale(1, 1);
+    }
+  }
+
+  .goti-capture-pop {
+    animation: capturePop .3s ease-out;
+  }
 
   @keyframes capturePop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.5); filter: brightness(1.6); }
-    100% { transform: scale(0); opacity: 0; }
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.5);
+      filter: brightness(1.6);
+    }
+
+    100% {
+      transform: scale(0);
+      opacity: 0;
+    }
   }
 
   .dice-scene {
@@ -637,11 +791,25 @@ description: "Play India's favorite board game online! Create private rooms to p
   }
 
   @keyframes dRoll {
-    0% { transform: rotateX(-20deg) rotateY(30deg); }
-    20% { transform: rotateX(200deg) rotateY(150deg) rotateZ(60deg); }
-    50% { transform: rotateX(500deg) rotateY(400deg) rotateZ(180deg); }
-    80% { transform: rotateX(680deg) rotateY(560deg) rotateZ(240deg); }
-    100% { transform: var(--df); }
+    0% {
+      transform: rotateX(-20deg) rotateY(30deg);
+    }
+
+    20% {
+      transform: rotateX(200deg) rotateY(150deg) rotateZ(60deg);
+    }
+
+    50% {
+      transform: rotateX(500deg) rotateY(400deg) rotateZ(180deg);
+    }
+
+    80% {
+      transform: rotateX(680deg) rotateY(560deg) rotateZ(240deg);
+    }
+
+    100% {
+      transform: var(--df);
+    }
   }
 
   .dice-face {
@@ -656,12 +824,35 @@ description: "Play India's favorite board game online! Create private rooms to p
     box-shadow: inset 0 0 6px rgba(0, 0, 0, .12);
   }
 
-  .face-1 { transform: translateZ(calc(var(--ds)/2)); grid-template-areas: '. . .' '. c .' '. . .'; }
-  .face-6 { transform: rotateY(180deg) translateZ(calc(var(--ds)/2)); grid-template-areas: 'a . b' 'c . d' 'e . f'; }
-  .face-2 { transform: rotateY(90deg) translateZ(calc(var(--ds)/2)); grid-template-areas: '. . a' '. . .' 'b . .'; }
-  .face-5 { transform: rotateY(-90deg) translateZ(calc(var(--ds)/2)); grid-template-areas: 'a . b' '. c .' 'd . e'; }
-  .face-3 { transform: rotateX(-90deg) translateZ(calc(var(--ds)/2)); grid-template-areas: '. . a' '. c .' 'b . .'; }
-  .face-4 { transform: rotateX(90deg) translateZ(calc(var(--ds)/2)); grid-template-areas: 'a . b' '. . .' 'c . d'; }
+  .face-1 {
+    transform: translateZ(calc(var(--ds)/2));
+    grid-template-areas: '. . .' '. c .' '. . .';
+  }
+
+  .face-6 {
+    transform: rotateY(180deg) translateZ(calc(var(--ds)/2));
+    grid-template-areas: 'a . b' 'c . d' 'e . f';
+  }
+
+  .face-2 {
+    transform: rotateY(90deg) translateZ(calc(var(--ds)/2));
+    grid-template-areas: '. . a' '. . .' 'b . .';
+  }
+
+  .face-5 {
+    transform: rotateY(-90deg) translateZ(calc(var(--ds)/2));
+    grid-template-areas: 'a . b' '. c .' 'd . e';
+  }
+
+  .face-3 {
+    transform: rotateX(-90deg) translateZ(calc(var(--ds)/2));
+    grid-template-areas: '. . a' '. c .' 'b . .';
+  }
+
+  .face-4 {
+    transform: rotateX(90deg) translateZ(calc(var(--ds)/2));
+    grid-template-areas: 'a . b' '. . .' 'c . d';
+  }
 
   .dot {
     width: 6px;
@@ -673,27 +864,89 @@ description: "Play India's favorite board game online! Create private rooms to p
     align-self: center;
   }
 
-  .face-1 .dot:nth-child(1) { grid-area: c; }
-  .face-2 .dot:nth-child(1) { grid-area: a; }
-  .face-2 .dot:nth-child(2) { grid-area: b; }
-  .face-3 .dot:nth-child(1) { grid-area: a; }
-  .face-3 .dot:nth-child(2) { grid-area: c; }
-  .face-3 .dot:nth-child(3) { grid-area: b; }
-  .face-4 .dot:nth-child(1) { grid-area: a; }
-  .face-4 .dot:nth-child(2) { grid-area: b; }
-  .face-4 .dot:nth-child(3) { grid-area: c; }
-  .face-4 .dot:nth-child(4) { grid-area: d; }
-  .face-5 .dot:nth-child(1) { grid-area: a; }
-  .face-5 .dot:nth-child(2) { grid-area: b; }
-  .face-5 .dot:nth-child(3) { grid-area: c; }
-  .face-5 .dot:nth-child(4) { grid-area: d; }
-  .face-5 .dot:nth-child(5) { grid-area: e; }
-  .face-6 .dot:nth-child(1) { grid-area: a; }
-  .face-6 .dot:nth-child(2) { grid-area: b; }
-  .face-6 .dot:nth-child(3) { grid-area: c; }
-  .face-6 .dot:nth-child(4) { grid-area: d; }
-  .face-6 .dot:nth-child(5) { grid-area: e; }
-  .face-6 .dot:nth-child(6) { grid-area: f; }
+  .face-1 .dot:nth-child(1) {
+    grid-area: c;
+  }
+
+  .face-2 .dot:nth-child(1) {
+    grid-area: a;
+  }
+
+  .face-2 .dot:nth-child(2) {
+    grid-area: b;
+  }
+
+  .face-3 .dot:nth-child(1) {
+    grid-area: a;
+  }
+
+  .face-3 .dot:nth-child(2) {
+    grid-area: c;
+  }
+
+  .face-3 .dot:nth-child(3) {
+    grid-area: b;
+  }
+
+  .face-4 .dot:nth-child(1) {
+    grid-area: a;
+  }
+
+  .face-4 .dot:nth-child(2) {
+    grid-area: b;
+  }
+
+  .face-4 .dot:nth-child(3) {
+    grid-area: c;
+  }
+
+  .face-4 .dot:nth-child(4) {
+    grid-area: d;
+  }
+
+  .face-5 .dot:nth-child(1) {
+    grid-area: a;
+  }
+
+  .face-5 .dot:nth-child(2) {
+    grid-area: b;
+  }
+
+  .face-5 .dot:nth-child(3) {
+    grid-area: c;
+  }
+
+  .face-5 .dot:nth-child(4) {
+    grid-area: d;
+  }
+
+  .face-5 .dot:nth-child(5) {
+    grid-area: e;
+  }
+
+  .face-6 .dot:nth-child(1) {
+    grid-area: a;
+  }
+
+  .face-6 .dot:nth-child(2) {
+    grid-area: b;
+  }
+
+  .face-6 .dot:nth-child(3) {
+    grid-area: c;
+  }
+
+  .face-6 .dot:nth-child(4) {
+    grid-area: d;
+  }
+
+  .face-6 .dot:nth-child(5) {
+    grid-area: e;
+  }
+
+  .face-6 .dot:nth-child(6) {
+    grid-area: f;
+  }
 
   .board-bottom-bar {
     display: flex;
@@ -740,7 +993,11 @@ description: "Play India's favorite board game online! Create private rooms to p
     margin-right: 5px;
   }
 
-  @keyframes spin { to { transform: rotate(360deg) } }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg)
+    }
+  }
 
   .emoji-bar {
     display: flex;
@@ -760,8 +1017,14 @@ description: "Play India's favorite board game online! Create private rooms to p
     line-height: 1;
   }
 
-  .emoji-btn:hover { background: rgba(0, 0, 0, .08); transform: scale(1.22); }
-  .emoji-btn:active { transform: scale(0.88); }
+  .emoji-btn:hover {
+    background: rgba(0, 0, 0, .08);
+    transform: scale(1.22);
+  }
+
+  .emoji-btn:active {
+    transform: scale(0.88);
+  }
 
   #emoji-toast-wrap {
     position: fixed;
@@ -785,42 +1048,150 @@ description: "Play India's favorite board game online! Create private rooms to p
   }
 
   @keyframes etoast {
-    0% { opacity: 0; transform: scale(0.3) translateY(0); }
-    10% { opacity: 1; transform: scale(1.2) translateY(-8px); }
-    22% { transform: scale(1) translateY(-18px); }
-    75% { opacity: 1; transform: scale(1) translateY(-90px); }
-    100% { opacity: 0; transform: scale(0.7) translateY(-150px); }
+    0% {
+      opacity: 0;
+      transform: scale(0.3) translateY(0);
+    }
+
+    10% {
+      opacity: 1;
+      transform: scale(1.2) translateY(-8px);
+    }
+
+    22% {
+      transform: scale(1) translateY(-18px);
+    }
+
+    75% {
+      opacity: 1;
+      transform: scale(1) translateY(-90px);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scale(0.7) translateY(-150px);
+    }
   }
 
-  .emoji-toast-icon { font-size: 3.2rem; line-height: 1; filter: drop-shadow(0 4px 14px rgba(0, 0, 0, .3)); }
-  .emoji-toast-name { font-family: 'Rajdhani', sans-serif; font-size: .74rem; font-weight: 700; color: #fff; background: rgba(0, 0, 0, .72); padding: 2px 9px; border-radius: 20px; letter-spacing: 1px; white-space: nowrap; }
+  .emoji-toast-icon {
+    font-size: 3.2rem;
+    line-height: 1;
+    filter: drop-shadow(0 4px 14px rgba(0, 0, 0, .3));
+  }
+
+  .emoji-toast-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: .74rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0, 0, 0, .72);
+    padding: 2px 9px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
 
   @media(max-width:700px) {
-    :root { --ds: 30px; --goti-size: 22px; }
-    .board-wrap { padding: 6px; border-radius: 12px; width: 100%; }
-    #game-screen { 
-      padding: 8px 0; 
-      gap: 5px; 
+    :root {
+      --ds: 30px;
+      --goti-size: 22px;
     }
-    .ludo-board { grid-template-columns: repeat(15, calc((100vw - 32px)/15)); grid-template-rows: repeat(15, calc((100vw - 32px)/15)); gap: 1px; padding: 1px; }
-    .cell { width: calc((100vw - 32px)/15); height: calc((100vw - 32px)/15); border-radius: 2px; gap: 1px; }
-    .win-house { width: calc((100vw - 32px)/15*3); height: calc((100vw - 32px)/15*3); }
-    .win-house-emoji { font-size: 22px; }
-    .home-card { padding: 3px; gap: 2px; }
-    .game-room-badge { font-size: .62rem; padding: 3px 6px; }
-    .exit-game-btn { font-size: .6rem; padding: 3px 7px; }
-    .name-bar { padding: 0 4px; gap: 3px; }
-    .ptag { padding: 5px 8px; font-size: .72rem; gap: 5px; }
-    .turn-label { font-size: .72rem; letter-spacing: 1px; padding: 4px 10px; }
-    .emoji-btn { font-size: 1.3rem; padding: 4px 8px; }
+
+    .board-wrap {
+      padding: 6px;
+      border-radius: 12px;
+      width: 100%;
+    }
+
+    #game-screen {
+      padding: 8px 0;
+      gap: 5px;
+    }
+
+    .ludo-board {
+      grid-template-columns: repeat(15, calc((100vw - 32px)/15));
+      grid-template-rows: repeat(15, calc((100vw - 32px)/15));
+      gap: 1px;
+      padding: 1px;
+    }
+
+    .cell {
+      width: calc((100vw - 32px)/15);
+      height: calc((100vw - 32px)/15);
+      border-radius: 2px;
+      gap: 1px;
+    }
+
+    .win-house {
+      width: calc((100vw - 32px)/15*3);
+      height: calc((100vw - 32px)/15*3);
+    }
+
+    .win-house-emoji {
+      font-size: 22px;
+    }
+
+    .home-card {
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .game-room-badge {
+      font-size: .62rem;
+      padding: 3px 6px;
+    }
+
+    .exit-game-btn {
+      font-size: .6rem;
+      padding: 3px 7px;
+    }
+
+    .name-bar {
+      padding: 0 4px;
+      gap: 3px;
+    }
+
+    .ptag {
+      padding: 5px 8px;
+      font-size: .72rem;
+      gap: 5px;
+    }
+
+    .turn-label {
+      font-size: .72rem;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+    }
+
+    .emoji-btn {
+      font-size: 1.3rem;
+      padding: 4px 8px;
+    }
   }
 
   @media(max-width:400px) {
-    :root { --goti-size: 18px; }
-    .ludo-board { grid-template-columns: repeat(15, calc((100vw - 20px)/15)); grid-template-rows: repeat(15, calc((100vw - 20px)/15)); }
-    .cell { width: calc((100vw - 20px)/15); height: calc((100vw - 20px)/15); }
-    .win-house { width: calc((100vw - 20px)/15*3); height: calc((100vw - 20px)/15*3); }
-    .board-wrap { padding: 4px; }
+    :root {
+      --goti-size: 18px;
+    }
+
+    .ludo-board {
+      grid-template-columns: repeat(15, calc((100vw - 20px)/15));
+      grid-template-rows: repeat(15, calc((100vw - 20px)/15));
+    }
+
+    .cell {
+      width: calc((100vw - 20px)/15);
+      height: calc((100vw - 20px)/15);
+    }
+
+    .win-house {
+      width: calc((100vw - 20px)/15*3);
+      height: calc((100vw - 20px)/15*3);
+    }
+
+    .board-wrap {
+      padding: 4px;
+    }
   }
 </style>
 
@@ -893,12 +1264,39 @@ description: "Play India's favorite board game online! Create private rooms to p
       <div class="dice-scene" style="--ds:38px;">
         <div class="dice-cube" id="bottom-dice-cube"
           style="--df:rotateX(-20deg) rotateY(30deg);transform:rotateX(-20deg) rotateY(30deg);">
-          <div class="dice-face face-1"><div class="dot"></div></div>
-          <div class="dice-face face-2"><div class="dot"></div><div class="dot"></div></div>
-          <div class="dice-face face-3"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-          <div class="dice-face face-4"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-          <div class="dice-face face-5"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-          <div class="dice-face face-6"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          <div class="dice-face face-1">
+            <div class="dot"></div>
+          </div>
+          <div class="dice-face face-2">
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="dice-face face-3">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="dice-face face-4">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="dice-face face-5">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="dice-face face-6">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1053,10 +1451,31 @@ description: "Play India's favorite board game online! Create private rooms to p
     return getSafePlayerName(pm[winnerColor], winnerColor).toUpperCase() + ' WINS!';
   }
 
+  function createConfetti() {
+    const container = document.getElementById('confetti-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const colors = ['#f9a825', '#c62828', '#2e7d32', '#1565c0', '#ff8a80', '#69f0ae', '#ffe57f', '#82b1ff'];
+    for (let i = 0; i < 80; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti';
+      el.style.left = Math.random() * 100 + '%';
+      el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      el.style.animationDelay = Math.random() * 2 + 's';
+      el.style.animationDuration = (Math.random() * 2 + 2) + 's';
+      const size = Math.random() * 8 + 6;
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      if (Math.random() > 0.5) el.style.borderRadius = '50%';
+      container.appendChild(el);
+    }
+  }
+
   window.showWin = function (winnerColor, room) {
     window.showScreen('game-screen');
     document.getElementById('win-title').textContent = getWinTitle(room, winnerColor);
     document.getElementById('win-overlay').classList.add('active');
+    createConfetti();
     stopBGM();
   };
 
@@ -1136,25 +1555,48 @@ description: "Play India's favorite board game online! Create private rooms to p
     if (!rCode) { if (err) err.textContent = 'Please enter a room code.'; return; }
     window.setBtnLoad('join-btn', true, 'Join Room');
     try {
-      const snap = await get(ref(db, 'games/' + rCode));
-      const room = snap.val();
-      if (!room) { if (err) err.textContent = 'Room not found.'; window.setBtnLoad('join-btn', false, 'Join Room'); return; }
-      if (room.status !== 'waiting') { if (err) err.textContent = 'Game already started.'; window.setBtnLoad('join-btn', false, 'Join Room'); return; }
-      const mode = room.mode || '1v1';
-      const colors = slotColors(mode);
-      const players = sortPlayers(Object.values(room.players || {}));
-      const stale = players.filter(p => p.isOnline === false);
-      for (const p of stale) { if (p.uid) await remove(ref(db, 'games/' + rCode + '/players/' + p.uid)); }
-      const fresh = players.filter(p => p.isOnline !== false);
-      if (fresh.length >= getSlots(mode)) { if (err) err.textContent = 'Room is full.'; window.setBtnLoad('join-btn', false, 'Join Room'); return; }
-      const used = new Set(fresh.map(p => p.color));
-      const available = colors.filter(c => !used.has(c));
-      const picked = COLORS.includes(window.selectedJoinColor) && available.includes(window.selectedJoinColor) ? window.selectedJoinColor : available[0];
-      if (!picked) { if (err) err.textContent = 'No color available.'; window.setBtnLoad('join-btn', false, 'Join Room'); return; }
-      myUid = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+      let errMsg = '';
+      let joinSuccess = false;
+      const myUidLocal = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+      let pickedColor = '';
+
+      const txRef = ref(db, 'games/' + rCode);
+      await runTransaction(txRef, room => {
+        if (!room) { errMsg = 'Room not found.'; return; }
+        if (room.status !== 'waiting') { errMsg = 'Game already started.'; return; }
+        const mode = room.mode || '1v1';
+        const colors = slotColors(mode);
+        const players = sortPlayers(Object.values(room.players || {}));
+
+        const stale = players.filter(p => p.isOnline === false);
+        stale.forEach(p => { if (p.uid && room.players) delete room.players[p.uid]; });
+
+        const fresh = players.filter(p => p.isOnline !== false);
+        if (fresh.length >= getSlots(mode)) { errMsg = 'Room is full.'; return; }
+
+        const used = new Set(fresh.map(p => p.color));
+        const available = colors.filter(c => !used.has(c));
+        const picked = COLORS.includes(window.selectedJoinColor) && available.includes(window.selectedJoinColor) ? window.selectedJoinColor : available[0];
+        if (!picked) { errMsg = 'No color available.'; return; }
+
+        if (!room.players) room.players = {};
+        room.players[myUidLocal] = { uid: myUidLocal, name: name, color: picked, joinedAt: getNow(), isOnline: true, lastSeen: getNow() };
+
+        pickedColor = picked;
+        joinSuccess = true;
+        return room;
+      });
+
+      if (!joinSuccess) {
+        if (err) err.textContent = errMsg || 'Could not join room.';
+        window.setBtnLoad('join-btn', false, 'Join Room');
+        return;
+      }
+
+      myUid = myUidLocal;
       if (window.initVoiceChat) window.initVoiceChat(myUid);
-      myName = name; myColor = picked; roomCode = rCode;
-      await set(ref(db, 'games/' + rCode + '/players/' + myUid), { uid: myUid, name: myName, color: myColor, joinedAt: getNow(), isOnline: true, lastSeen: getNow() });
+      myName = name; myColor = pickedColor; roomCode = rCode;
+
       saveSession();
       await setupPresence();
       window.setBtnLoad('join-btn', false, 'Join Room');
@@ -1218,6 +1660,7 @@ description: "Play India's favorite board game online! Create private rooms to p
     localStorage.removeItem('ludo_session');
     boardBuilt = false; waitingForMove = false; pendingRoll = 0; lastEventKey = ''; isAnimating = false; lastEmojiKey = ''; bgmPlaying = false; pendingGameState = null;
     document.getElementById('board').querySelectorAll('.cell').forEach(c => c.remove());
+    const cc = document.getElementById('confetti-container'); if (cc) cc.innerHTML = '';
     const fg = document.getElementById('floating-goti'); if (fg) fg.style.display = 'none';
     document.getElementById('emoji-toast-wrap').innerHTML = '';
     const bdw = document.getElementById('bottom-dice-wrap'); if (bdw) bdw.classList.add('disabled');
@@ -1265,10 +1708,23 @@ description: "Play India's favorite board game online! Create private rooms to p
     const changeColors = COLORS.filter(c => !used.has(c) || c === myColor);
     if (window.renderWaitingAvailableColors) window.renderWaitingAvailableColors(changeColors, myColor);
     const wt = document.getElementById('waiting-text');
+    const startBtn = document.getElementById('host-start-btn');
+    if (startBtn) startBtn.style.display = 'none';
+
+    const canStart = (mode === 'ffa' && onlinePlayers.length >= 2) || (onlinePlayers.length === maxSlots);
+
     if (onlinePlayers.length >= maxSlots) {
-      wt.textContent = 'All players joined! Starting…';
-      if (hostUid === myUid) setTimeout(startGame, 1200);
-    } else wt.textContent = 'Waiting for players… (' + onlinePlayers.length + '/' + maxSlots + ')';
+      wt.textContent = 'All players joined! ' + (hostUid === myUid ? 'You can start now' : 'Waiting for host to start...');
+    } else {
+      wt.textContent = 'Waiting for players… (' + onlinePlayers.length + '/' + maxSlots + ')';
+      if (mode === 'ffa' && onlinePlayers.length >= 2) {
+        wt.textContent += (hostUid === myUid ? ' — You can start now' : ' — Waiting for host to start...');
+      }
+    }
+    
+    if (canStart && hostUid === myUid) {
+      if (startBtn) startBtn.style.display = 'inline-block';
+    }
   }
 
   async function startGame() {
@@ -1276,7 +1732,10 @@ description: "Play India's favorite board game online! Create private rooms to p
     const room = snap.val(); if (!room || room.status !== 'waiting') return;
     const players = sortPlayers(Object.values(room.players || {}));
     const online = getOnlinePlayers(players).filter(p => COLORS.includes(p.color));
-    if (online.length < getSlots(room.mode)) return;
+    
+    const canStart = (room.mode === 'ffa' && online.length >= 2) || (online.length === getSlots(room.mode));
+    if (!canStart) return;
+
     const firstTurn = COLORS.find(c => online.some(p => p.color === c)) || online[0]?.color || 'red';
     await update(ref(db, 'games/' + roomCode), { status: 'playing', currentTurn: firstTurn, turnStartTime: getNow(), pendingMove: null, sixCounts: room.sixCounts || makeSixCounts() });
   }
@@ -1290,11 +1749,11 @@ description: "Play India's favorite board game online! Create private rooms to p
     const timeLeft = Math.max(0, 20 - Math.floor(elapsed / 1000));
     if (room.pendingMove && room.pendingMove.color === room.currentTurn && currentPlayer) setTurnText(getSafePlayerName(currentPlayer, room.currentTurn) + ' rolled ' + room.pendingMove.roll + ' — pick a goti (' + timeLeft + 's)');
     else if (currentPlayer) setTurnText(getSafePlayerName(currentPlayer, room.currentTurn) + '\'s Turn (' + timeLeft + 's)');
-    
+
     let shouldPass = false;
     if (!currentPlayer || currentPlayer.isOnline === false) shouldPass = true;
     if (elapsed > 20000) shouldPass = true;
-    
+
     if (isHost && shouldPass && !window.isPassingTurn) {
       window.isPassingTurn = true;
       const txRef = ref(db, 'games/' + roomCode);
@@ -1429,7 +1888,7 @@ description: "Play India's favorite board game online! Create private rooms to p
       const prevCenter = si === 0 ? getCenter(steps[0]) : getCenter(steps[si - 1]);
       const s = steps[si++], ctr = getCenter(s);
       if (!ctr || !prevCenter) { setTimeout(next, stepDuration); return; }
-      if (!s.isHome) { sndMove(); if (s.r !== undefined) { const k = s.r + ',' + s.c; if (SAFE_CELLS.has(k) && s !== steps[steps.length - 1]) setTimeout(sndStar, stepDuration * 0.5); } }
+      if (!s.isHome) { sndMove(); if (s.r !== undefined) { const k = s.r + ',' + s.c; if (SAFE_CELLS.has(k)) setTimeout(sndStar, stepDuration * 0.5); } }
       fg.classList.remove('goti-hop'); void fg.offsetWidth; fg.classList.add('goti-hop');
       tweenPosition(fg, prevCenter, ctr, stepDuration, gSize, next);
     };
@@ -1560,19 +2019,29 @@ description: "Play India's favorite board game online! Create private rooms to p
     document.querySelectorAll('.token.selectable').forEach(g => { g.classList.remove('selectable'); g.onclick = null; });
     if (isMe && roll > 0 && waitingForMove) {
       const myGoties = goties[myColor] || [];
+      const movable = [];
       myGoties.forEach((gt, idx) => {
         if (!canMove(myColor, idx, gt.pos, roll, goties)) return;
-        if (gt.pos === -1) {
-          const [hr, hc] = COLOR_CFG[myColor].homeCells[idx];
-          const hEl = document.querySelector(`[data-hcell="${myColor}-${hr}-${hc}"] .token[data-idx="${idx}"]`);
-          if (hEl) { hEl.classList.add('selectable'); hEl.onclick = () => moveGoti(myColor, idx, roll); }
-        } else {
-          const rc = getRC(myColor, gt.pos); if (!rc) return;
-          const cell = getCellEl(rc[0], rc[1]); if (!cell) return;
-          const own = Array.from(cell.querySelectorAll('.goti')).find(gel => gel.dataset.color === myColor && gel.dataset.idx === String(idx));
-          if (own) { own.classList.add('selectable'); cell.appendChild(own); own.onclick = () => moveGoti(myColor, idx, roll); }
-        }
+        movable.push(idx);
       });
+
+      if (movable.length === 1) {
+        setTimeout(() => moveGoti(myColor, movable[0], roll), 250);
+      } else {
+        myGoties.forEach((gt, idx) => {
+          if (!movable.includes(idx)) return;
+          if (gt.pos === -1) {
+            const [hr, hc] = COLOR_CFG[myColor].homeCells[idx];
+            const hEl = document.querySelector(`[data-hcell="${myColor}-${hr}-${hc}"] .token[data-idx="${idx}"]`);
+            if (hEl) { hEl.classList.add('selectable'); hEl.onclick = () => moveGoti(myColor, idx, roll); }
+          } else {
+            const rc = getRC(myColor, gt.pos); if (!rc) return;
+            const cell = getCellEl(rc[0], rc[1]); if (!cell) return;
+            const own = Array.from(cell.querySelectorAll('.goti')).find(gel => gel.dataset.color === myColor && gel.dataset.idx === String(idx));
+            if (own) { own.classList.add('selectable'); cell.appendChild(own); own.onclick = () => moveGoti(myColor, idx, roll); }
+          }
+        });
+      }
     }
   }
 
@@ -1605,6 +2074,15 @@ description: "Play India's favorite board game online! Create private rooms to p
           for (const oc of COLORS) {
             if (oc === color || isSameTeam(room.mode, oc, color)) continue;
             const og = goties[oc] || [];
+
+            let piecesOnCell = 0;
+            for (let oi = 0; oi < og.length; oi++) {
+              if (og[oi].pos < 0 || og[oi].pos >= 51) continue;
+              const orc = getRC(oc, og[oi].pos);
+              if (orc && rc && orc[0] === rc[0] && orc[1] === rc[1]) piecesOnCell++;
+            }
+            if (piecesOnCell >= 2) continue;
+
             for (let oi = 0; oi < og.length; oi++) {
               if (og[oi].pos < 0 || og[oi].pos >= 51) continue;
               const orc = getRC(oc, og[oi].pos);
