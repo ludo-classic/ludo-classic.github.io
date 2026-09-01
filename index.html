@@ -1747,9 +1747,11 @@ description: "Play India's favorite board game online! Create private rooms to p
     }
   }
 
-  async function startGame() {
+  window.startGame = async function () {
     const snap = await get(ref(db, 'games/' + roomCode));
-    const room = snap.val(); if (!room || room.status !== 'waiting') return;
+    const room = snap.val(); 
+    if (!room || room.status !== 'waiting') return;
+    
     const players = sortPlayers(Object.values(room.players || {}));
     const online = getOnlinePlayers(players).filter(p => COLORS.includes(p.color));
     
@@ -1757,8 +1759,14 @@ description: "Play India's favorite board game online! Create private rooms to p
     if (!canStart) return;
 
     const firstTurn = COLORS.find(c => online.some(p => p.color === c)) || online[0]?.color || 'red';
-    await update(ref(db, 'games/' + roomCode), { status: 'playing', currentTurn: firstTurn, turnStartTime: getNow(), pendingMove: null, sixCounts: room.sixCounts || makeSixCounts() });
-  }
+    await update(ref(db, 'games/' + roomCode), { 
+      status: 'playing', 
+      currentTurn: firstTurn, 
+      turnStartTime: getNow(), 
+      pendingMove: null, 
+      sixCounts: room.sixCounts || makeSixCounts() 
+    });
+  };
 
   async function checkGameRules(room, players) {
     if (room.status !== 'playing' || isAnimating) return;
