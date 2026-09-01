@@ -7,11 +7,15 @@
     --text-muted: #64748b;
   }
 
-  #win-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.92); z-index: 9998; flex-direction: column; align-items: center; justify-content: center; gap: 16px; backdrop-filter: blur(4px); }
+  #win-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9998; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(6px); overflow: hidden; }
   #win-overlay.active { display: flex; }
-  .win-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(1rem, 5vw, 2.4rem); color: var(--gold); text-align: center; text-shadow: 0 0 20px rgba(217,119,6,.2); letter-spacing: 4px; animation: glow 2s ease-in-out infinite alternate; }
+  .win-card { background: rgba(25, 25, 25, 0.6); border: 1px solid rgba(217, 119, 6, 0.4); border-radius: 24px; padding: 40px 30px; box-shadow: 0 0 40px rgba(217, 119, 6, 0.3), inset 0 0 20px rgba(217, 119, 6, 0.1); backdrop-filter: blur(10px); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 2; position: relative; width: 90%; max-width: 400px; }
+  #confetti-container { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+  .confetti { position: absolute; top: -20px; width: 10px; height: 10px; opacity: 0; animation: fall 3s linear forwards; }
+  @keyframes fall { 0% { opacity: 1; transform: translateY(0) rotate(0deg); } 100% { opacity: 0; transform: translateY(110vh) rotate(720deg); } }
+  .win-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(1.2rem, 5vw, 2.4rem); color: var(--gold); text-align: center; text-shadow: 0 0 20px rgba(217,119,6,.2); letter-spacing: 4px; animation: glow 2s ease-in-out infinite alternate; }
   @keyframes glow { 0% { text-shadow: 0 0 10px rgba(217,119,6,.2); } 100% { text-shadow: 0 0 30px rgba(217,119,6,.6), 0 0 10px rgba(217,119,6,.3); } }
-  .win-emoji { font-size: 80px; animation: bounce .6s ease-in-out infinite alternate; }
+  .win-emoji { font-size: 80px; animation: bounce .6s ease-in-out infinite alternate; line-height: 1; }
   @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-14px); } }
   .win-sub { color: var(--gold2); font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
   .win-back-btn { margin-top: 10px; padding: 13px 32px; border: none; border-radius: 10px; background: linear-gradient(135deg, var(--gold2), var(--gold)); color: #ffffff; font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 16px rgba(217,119,6,.2); transition: transform 0.2s; }
@@ -31,10 +35,13 @@
 </style>
 
 <div id="win-overlay">
-  <div class="win-emoji">🏆</div>
-  <div class="win-title" id="win-title">PLAYER WINS!</div>
-  <div class="win-sub">Congratulations!</div>
-  <button class="win-back-btn" onclick="exitToLobby()">Back to Lobby</button>
+  <div id="confetti-container"></div>
+  <div class="win-card">
+    <div class="win-emoji">🏆</div>
+    <div class="win-title" id="win-title">PLAYER WINS!</div>
+    <div class="win-sub">Congratulations!</div>
+    <button class="win-back-btn" onclick="exitToLobby()">Back to Lobby</button>
+  </div>
 </div>
 
 <div id="exit-confirm-overlay">
