@@ -1554,7 +1554,15 @@ description: "Play India's favorite board game online! Create private rooms to p
     if (!name) { if (err) err.textContent = 'Please enter your name.'; return; }
     if (!rCode) { if (err) err.textContent = 'Please enter a room code.'; return; }
     window.setBtnLoad('join-btn', true, 'Join Room');
+    
     try {
+      const snap = await get(ref(db, 'games/' + rCode));
+      if (!snap.exists()) {
+        if (err) err.textContent = 'Room not found.';
+        window.setBtnLoad('join-btn', false, 'Join Room');
+        return;
+      }
+
       let errMsg = '';
       let joinSuccess = false;
       const myUidLocal = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
@@ -1562,8 +1570,9 @@ description: "Play India's favorite board game online! Create private rooms to p
 
       const txRef = ref(db, 'games/' + rCode);
       await runTransaction(txRef, room => {
-        if (!room) { errMsg = 'Room not found.'; return; }
+        if (!room) return room;
         if (room.status !== 'waiting') { errMsg = 'Game already started.'; return; }
+        
         const mode = room.mode || '1v1';
         const colors = slotColors(mode);
         const players = sortPlayers(Object.values(room.players || {}));
@@ -1576,11 +1585,20 @@ description: "Play India's favorite board game online! Create private rooms to p
 
         const used = new Set(fresh.map(p => p.color));
         const available = colors.filter(c => !used.has(c));
-        const picked = COLORS.includes(window.selectedJoinColor) && available.includes(window.selectedJoinColor) ? window.selectedJoinColor : available[0];
+        const picked = COLORS.includes(window.selectedJoinColor) && available.includes(window.selectedJoinColor) 
+          ? window.selectedJoinColor 
+          : available[0];
         if (!picked) { errMsg = 'No color available.'; return; }
 
         if (!room.players) room.players = {};
-        room.players[myUidLocal] = { uid: myUidLocal, name: name, color: picked, joinedAt: getNow(), isOnline: true, lastSeen: getNow() };
+        room.players[myUidLocal] = { 
+          uid: myUidLocal, 
+          name: name, 
+          color: picked, 
+          joinedAt: getNow(), 
+          isOnline: true, 
+          lastSeen: getNow() 
+        };
 
         pickedColor = picked;
         joinSuccess = true;
@@ -1595,7 +1613,9 @@ description: "Play India's favorite board game online! Create private rooms to p
 
       myUid = myUidLocal;
       if (window.initVoiceChat) window.initVoiceChat(myUid);
-      myName = name; myColor = pickedColor; roomCode = rCode;
+      myName = name; 
+      myColor = pickedColor; 
+      roomCode = rCode;
 
       saveSession();
       await setupPresence();
