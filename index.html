@@ -2091,22 +2091,43 @@ description: "Play India's favorite board game online! Create private rooms to p
       if (newPos >= 0 && newPos <= 50) {
         const rc = getRC(color, newPos), rcKey = rc ? rc[0] + ',' + rc[1] : '';
         if (!SAFE_CELLS.has(rcKey)) {
+          let targetHasBlockade = false;
+          
           for (const oc of COLORS) {
             if (oc === color || isSameTeam(room.mode, oc, color)) continue;
-            const og = goties[oc] || [];
+            
+            const oppTeamColors = getTeamColors(room.mode, oc);
+            let teamPiecesCount = 0;
+            
+            oppTeamColors.forEach(tc => {
+              (goties[tc] || []).forEach(tg => {
+                if (tg.pos >= 0 && tg.pos < 51) {
+                  const torc = getRC(tc, tg.pos);
+                  if (torc && rc && torc[0] === rc[0] && torc[1] === rc[1]) {
+                    teamPiecesCount++;
+                  }
+                }
+              });
+            });
 
-            let piecesOnCell = 0;
-            for (let oi = 0; oi < og.length; oi++) {
-              if (og[oi].pos < 0 || og[oi].pos >= 51) continue;
-              const orc = getRC(oc, og[oi].pos);
-              if (orc && rc && orc[0] === rc[0] && orc[1] === rc[1]) piecesOnCell++;
+            if (teamPiecesCount >= 2) {
+              targetHasBlockade = true;
+              break;
             }
-            if (piecesOnCell >= 2) continue;
+          }
 
-            for (let oi = 0; oi < og.length; oi++) {
-              if (og[oi].pos < 0 || og[oi].pos >= 51) continue;
-              const orc = getRC(oc, og[oi].pos);
-              if (orc && rc && orc[0] === rc[0] && orc[1] === rc[1]) { goties[oc][oi] = { pos: -1 }; captured = true; }
+          if (!targetHasBlockade) {
+            for (const oc of COLORS) {
+              if (oc === color || isSameTeam(room.mode, oc, color)) continue;
+              const og = goties[oc] || [];
+              for (let oi = 0; oi < og.length; oi++) {
+                if (og[oi].pos < 0 || og[oi].pos >= 51) continue;
+                const orc = getRC(oc, og[oi].pos);
+                if (orc && rc && orc[0] === rc[0] && orc[1] === rc[1]) {
+                  goties[oc][oi] = { pos: -1 };
+                  captured = true;
+                }
+              }
             }
           }
         }
