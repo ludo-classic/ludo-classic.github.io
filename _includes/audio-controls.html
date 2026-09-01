@@ -295,7 +295,13 @@
       const track = myLocalStream.getAudioTracks()[0];
       if (track) track.enabled = window.isMicEnabled;
     } catch (err) {
-      myLocalStream = null;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      const dest = ctx.createMediaStreamDestination();
+      myLocalStream = dest.stream;
+      window.isMicEnabled = false; 
+      const btn = document.getElementById('btn-mic');
+      if (btn) btn.classList.add('muted');
     }
     return myLocalStream;
   }
@@ -446,7 +452,7 @@
         remoteAudioElements[targetUid] = audio;
       }
       remoteAudioElements[targetUid].srcObject = remoteStream;
-      remoteAudioElements[targetUid].play().catch(err => console.warn('Autoplay blocked:', err));
+      remoteAudioElements[targetUid].play().catch(err => {});
     });
 
     call.on('close', () => cleanupRemote(targetUid));
