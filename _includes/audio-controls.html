@@ -278,6 +278,12 @@
   const SVG_SPEAKER_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>';
   const SVG_SPEAKER_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
 
+  document.addEventListener('click', () => {
+    Object.values(remoteAudioElements).forEach(audio => {
+      if (audio.paused) audio.play().catch(() => {});
+    });
+  });
+
   function getBaseUrl() {
     return (window.BACKEND_URL || window.RTDB_URL || "").replace(/\/$/, "");
   }
@@ -302,9 +308,11 @@
   async function ensureMicStream() {
     if (myLocalStream) return myLocalStream;
     try {
-      myLocalStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-      const track = myLocalStream.getAudioTracks()[0];
-      if (track) track.enabled = window.isMicEnabled;
+      myLocalStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+      myLocalStream.getAudioTracks().forEach(track => (track.enabled = window.isMicEnabled));
     } catch (err) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       const ctx = new AudioContext();
@@ -321,7 +329,8 @@
     const base = getBaseUrl();
     if (!base || !window.lastVoiceMyUid) return;
     try {
-      await fetch(`${base}/signals/${toUid}`, {
+      const sigId = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+      await fetch(`${base}/signals/${toUid}/${sigId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ from: window.lastVoiceMyUid, signal, time: Date.now() })
@@ -343,9 +352,15 @@
       try {
         const msg = JSON.parse(event.data);
         if (msg.event === "connected" || !msg.data) return;
-        const { from, signal } = msg.data;
-        if (!from || !signal || from === window.lastVoiceMyUid) return;
-        await handleIncomingSignal(from, signal);
+        let payload = msg.data;
+        if (payload && !payload.signal && typeof payload === 'object') {
+          const keys = Object.keys(payload);
+          if (keys.length > 0 && payload[keys[keys.length - 1]]?.signal) {
+            payload = payload[keys[keys.length - 1]];
+          }
+        }
+        if (!payload || !payload.from || !payload.signal || payload.from === window.lastVoiceMyUid) return;
+        await handleIncomingSignal(payload.from, payload.signal);
       } catch (e) {}
     };
 
@@ -381,17 +396,18 @@
     };
 
     pc.ontrack = (event) => {
-      const remoteStream = event.streams[0];
-      if (!remoteAudioElements[targetUid]) {
-        const audio = document.createElement('audio');
+      let audio = remoteAudioElements[targetUid];
+      if (!audio) {
+        audio = document.createElement('audio');
         audio.autoplay = true;
+        audio.playsInline = true;
         audio.id = 'remote-audio-' + targetUid;
         audio.muted = !!localMutedPlayers[targetUid];
         document.body.appendChild(audio);
         remoteAudioElements[targetUid] = audio;
       }
-      remoteAudioElements[targetUid].srcObject = remoteStream;
-      remoteAudioElements[targetUid].play().catch(() => {});
+      audio.srcObject = event.streams[0];
+      audio.play().catch(() => {});
     };
 
     pc.onconnectionstatechange = () => {
@@ -465,6 +481,13 @@
     myLocalStream.getAudioTracks().forEach(track => (track.enabled = window.isMicEnabled));
     const btn = document.getElementById('btn-mic');
     if (btn) btn.classList.toggle('muted', !window.isMicEnabled);
+    Object.values(peerConnections).forEach(pc => {
+      const senders = pc.getSenders();
+      const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
+      if (audioSender && myLocalStream.getAudioTracks()[0]) {
+        audioSender.replaceTrack(myLocalStream.getAudioTracks()[0]).catch(() => {});
+      }
+    });
     if (window.syncVoicePeers && window.lastVoicePlayers) {
       window.syncVoicePeers(window.lastVoicePlayers, window.lastVoiceMyUid);
     }
