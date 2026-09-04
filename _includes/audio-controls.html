@@ -18,7 +18,7 @@
     background: var(--bg-card);
     border: 1px solid var(--pbr);
     border-radius: 14px;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: space-between;
     padding: 0 8px;
@@ -40,7 +40,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     outline: none;
-    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Rajdhani', sans-serif;
     font-weight: 700;
     font-size: 0.85rem;
     letter-spacing: 0.5px;
@@ -266,7 +266,9 @@
   window.lastVoiceMyUid = '';
   
   let myPeer = null;
+  let isPeerReady = false;
   let myLocalStream = null;
+  let silentDummyStream = null;
   const connectedPeers = {};
   const remoteAudioElements = {};
   const localMutedPlayers = {};
@@ -288,22 +290,40 @@
     return String((player && player.uid) || '').trim();
   }
 
-  async function ensureMicStream() {
-    if (myLocalStream) return myLocalStream;
+  function getSilentStream() {
+    if (silentDummyStream) return silentDummyStream;
     try {
-      myLocalStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-      const track = myLocalStream.getAudioTracks()[0];
-      if (track) track.enabled = window.isMicEnabled;
-    } catch (err) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       const ctx = new AudioContext();
       const dest = ctx.createMediaStreamDestination();
-      myLocalStream = dest.stream;
-      window.isMicEnabled = false; 
-      const btn = document.getElementById('btn-mic');
-      if (btn) btn.classList.add('muted');
+      silentDummyStream = dest.stream;
+    } catch (e) {
+      silentDummyStream = null;
     }
-    return myLocalStream;
+    return silentDummyStream;
+  }
+
+  async function getRealMicStream() {
+    if (myLocalStream) return myLocalStream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      myLocalStream = stream;
+      myLocalStream.getAudioTracks().forEach(t => t.enabled = window.isMicEnabled);
+      return stream;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function getStreamToSend() {
+    return (window.isMicEnabled && myLocalStream) ? myLocalStream : getSilentStream();
   }
 
   window.toggleBGM = function () {
@@ -325,45 +345,142 @@
     if (btn) btn.classList.toggle('muted', !window.isSfxEnabled);
   };
 
-  window.initVoiceChat = async function (myUid) {
-    if (myPeer) return;
-    await ensureMicStream();
+  window.initVoiceChat = function (myUid) {
+    if (myPeer || !myUid) return;
 
-    function connectPeer() {
-      myPeer = new Peer(myUid, { debug: 0 });
+    myPeer = new Peer(myUid, {
+      debug: 0,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' }
+        ]
+      }
+    });
 
-      myPeer.on('error', err => {
-        if (err.type === 'unavailable-id') {
-          setTimeout(() => {
-            if (myPeer) myPeer.destroy();
-            connectPeer();
-          }, 2000);
-        }
-      });
+    myPeer.on('open', () => {
+      isPeerReady = true;
+      if (window.lastVoicePlayers && window.lastVoicePlayers.length) {
+        window.syncVoicePeers(window.lastVoicePlayers, myUid);
+      }
+    });
 
-      myPeer.on('call', async call => {
-        await ensureMicStream();
-        try {
-          if (myLocalStream) call.answer(myLocalStream);
-          else call.answer();
-        } catch (err) {}
-        handleRemoteCall(call);
-      });
-    }
+    myPeer.on('call', call => {
+      const stream = getStreamToSend();
+      if (stream) call.answer(stream);
+      else call.answer();
+      handleRemoteCall(call);
+    });
 
-    connectPeer();
+    myPeer.on('error', err => {
+      if (err.type === 'unavailable-id') {
+        setTimeout(() => {
+          if (myPeer) myPeer.destroy();
+          window.initVoiceChat(myUid);
+        }, 1500);
+      }
+    });
   };
 
   window.toggleMic = async function () {
-    await ensureMicStream();
-    if (!myLocalStream) return;
-    window.isMicEnabled = !window.isMicEnabled;
-    myLocalStream.getAudioTracks().forEach(track => (track.enabled = window.isMicEnabled));
     const btn = document.getElementById('btn-mic');
-    if (btn) btn.classList.toggle('muted', !window.isMicEnabled);
-    if (window.syncVoicePeers && window.lastVoicePlayers) {
-      window.syncVoicePeers(window.lastVoicePlayers, window.lastVoiceMyUid);
+
+    if (!myLocalStream) {
+      const stream = await getRealMicStream();
+      if (!stream) {
+        alert("Microphone permission blocked hai. Browser settings me allow karein.");
+        return;
+      }
+      
+      const newTrack = stream.getAudioTracks()[0];
+      Object.values(connectedPeers).forEach(call => {
+        const sender = call.peerConnection?.getSenders()?.find(s => s.track?.kind === 'audio');
+        if (sender && newTrack) {
+          sender.replaceTrack(newTrack);
+        }
+      });
     }
+
+    window.isMicEnabled = !window.isMicEnabled;
+    if (myLocalStream) {
+      myLocalStream.getAudioTracks().forEach(t => t.enabled = window.isMicEnabled);
+    }
+    if (btn) btn.classList.toggle('muted', !window.isMicEnabled);
+  };
+
+  function handleRemoteCall(call) {
+    const targetUid = String(call.peer || '').trim();
+    if (!targetUid) return;
+    connectedPeers[targetUid] = call;
+
+    call.on('stream', remoteStream => {
+      let audio = remoteAudioElements[targetUid];
+      if (!audio) {
+        audio = document.createElement('audio');
+        audio.id = 'remote-audio-' + targetUid;
+        audio.autoplay = true;
+        audio.setAttribute('playsinline', 'true');
+        audio.muted = !!localMutedPlayers[targetUid];
+        document.body.appendChild(audio);
+        remoteAudioElements[targetUid] = audio;
+      }
+      audio.srcObject = remoteStream;
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          window.addEventListener('click', () => audio.play().catch(() => {}), { once: true });
+          window.addEventListener('touchstart', () => audio.play().catch(() => {}), { once: true });
+        });
+      }
+    });
+
+    call.on('close', () => cleanupRemote(targetUid));
+    call.on('error', () => cleanupRemote(targetUid));
+  }
+
+  function cleanupRemote(targetUid) {
+    targetUid = String(targetUid || '').trim();
+    if (!targetUid) return;
+    if (remoteAudioElements[targetUid]) {
+      remoteAudioElements[targetUid].srcObject = null;
+      remoteAudioElements[targetUid].remove();
+      delete remoteAudioElements[targetUid];
+    }
+    if (connectedPeers[targetUid]) {
+      try { connectedPeers[targetUid].close(); } catch (err) {}
+      delete connectedPeers[targetUid];
+    }
+  }
+
+  window.syncVoicePeers = async function (players, myUid) {
+    window.lastVoicePlayers = players;
+    window.lastVoiceMyUid = myUid;
+    if (!isPeerReady || !myPeer) return;
+
+    const myId = String(myUid || '').trim();
+    const onlinePlayers = (Array.isArray(players) ? players : []).filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
+    const activeUids = new Set(onlinePlayers.map(getVoiceUid));
+
+    Object.keys(connectedPeers).forEach(uid => {
+      if (!activeUids.has(uid)) cleanupRemote(uid);
+    });
+
+    onlinePlayers.forEach(p => {
+      const uid = getVoiceUid(p);
+      voicePlayerCache[uid] = p;
+      if (!connectedPeers[uid] && myId < uid) {
+        try {
+          const streamToSend = getStreamToSend();
+          const call = myPeer.call(uid, streamToSend);
+          if (call) handleRemoteCall(call);
+        } catch (err) {}
+      }
+    });
+
+    window.updateVoiceMenu();
   };
 
   window.toggleVoiceMenu = function () {
@@ -371,9 +488,7 @@
     if (!overlay) return;
     const isHidden = overlay.style.display === 'none';
     overlay.style.display = isHidden ? 'block' : 'none';
-    if (isHidden) {
-      window.updateVoiceMenu();
-    }
+    if (isHidden) window.updateVoiceMenu();
   };
 
   window.updateVoiceMenu = function () {
@@ -437,66 +552,6 @@
     window.updateVoiceMenu();
   };
 
-  function handleRemoteCall(call) {
-    const targetUid = String(call.peer || '').trim();
-    if (!targetUid) return;
-    connectedPeers[targetUid] = call;
-
-    call.on('stream', remoteStream => {
-      if (!remoteAudioElements[targetUid]) {
-        const audio = document.createElement('audio');
-        audio.autoplay = true;
-        audio.id = 'remote-audio-' + targetUid;
-        audio.muted = !!localMutedPlayers[targetUid];
-        document.body.appendChild(audio);
-        remoteAudioElements[targetUid] = audio;
-      }
-      remoteAudioElements[targetUid].srcObject = remoteStream;
-      remoteAudioElements[targetUid].play().catch(err => {});
-    });
-
-    call.on('close', () => cleanupRemote(targetUid));
-    call.on('error', () => cleanupRemote(targetUid));
-  }
-
-  function cleanupRemote(targetUid) {
-    targetUid = String(targetUid || '').trim();
-    if (!targetUid) return;
-    if (remoteAudioElements[targetUid]) {
-      remoteAudioElements[targetUid].remove();
-      delete remoteAudioElements[targetUid];
-    }
-    if (connectedPeers[targetUid]) {
-      try { connectedPeers[targetUid].close(); } catch (err) {}
-      delete connectedPeers[targetUid];
-    }
-  }
-
-  window.syncVoicePeers = async function (players, myUid) {
-    window.lastVoicePlayers = players;
-    window.lastVoiceMyUid = myUid;
-    const myId = String(myUid || '').trim();
-    const onlinePlayers = (Array.isArray(players) ? players : []).filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
-    const activeUids = new Set(onlinePlayers.map(getVoiceUid));
-
-    Object.keys(connectedPeers).forEach(uid => {
-      if (!activeUids.has(uid)) cleanupRemote(uid);
-    });
-
-    onlinePlayers.forEach(p => {
-      const uid = getVoiceUid(p);
-      voicePlayerCache[uid] = p;
-      if (myPeer && myLocalStream && !connectedPeers[uid] && myId < uid) {
-        try {
-          const call = myPeer.call(uid, myLocalStream);
-          if (call) handleRemoteCall(call);
-        } catch (err) {}
-      }
-    });
-
-    window.updateVoiceMenu();
-  };
-
   window.closeVoiceChat = function () {
     Object.keys(connectedPeers).forEach(cleanupRemote);
     if (myPeer) {
@@ -511,7 +566,9 @@
     });
     Object.keys(voicePlayerCache).forEach(uid => delete voicePlayerCache[uid]);
     myPeer = null;
+    isPeerReady = false;
     myLocalStream = null;
+    silentDummyStream = null;
     window.isMicEnabled = false;
     const btn = document.getElementById('btn-mic');
     if (btn) btn.classList.add('muted');
