@@ -264,34 +264,17 @@
   window.isMicEnabled = false;
   window.lastVoicePlayers = [];
   window.lastVoiceMyUid = '';
-
+  
+  let myPeer = null;
   let myLocalStream = null;
-  let signalSocket = null;
-  let signalReconnectTimer = null;
-  const peerConnections = {};
+  const connectedPeers = {};
   const remoteAudioElements = {};
   const localMutedPlayers = {};
   const voicePlayerCache = {};
-  const iceCandidatesQueue = {};
   const COLOR_HEX = { red: '#c62828', green: '#2e7d32', yellow: '#f9a825', blue: '#1565c0' };
 
   const SVG_SPEAKER_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>';
   const SVG_SPEAKER_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
-
-  document.addEventListener('click', () => {
-    Object.values(remoteAudioElements).forEach(audio => {
-      if (audio.paused) audio.play().catch(() => {});
-    });
-  });
-
-  function getBaseUrl() {
-    return (window.BACKEND_URL || window.RTDB_URL || "").replace(/\/$/, "");
-  }
-
-  function getWsBaseUrl() {
-    const base = getBaseUrl();
-    return base ? (base.startsWith("https") ? "wss://" : "ws://") + base.replace(/^https?:\/\//, "") : "";
-  }
 
   function safeVoiceName(player, fallback) {
     const raw = player && (player.name || player.displayName || player.username || player.nick);
@@ -308,144 +291,19 @@
   async function ensureMicStream() {
     if (myLocalStream) return myLocalStream;
     try {
-      myLocalStream = await navigator.mediaDevices.getUserMedia({
-        video: false,
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-      });
-      myLocalStream.getAudioTracks().forEach(track => (track.enabled = window.isMicEnabled));
+      myLocalStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+      const track = myLocalStream.getAudioTracks()[0];
+      if (track) track.enabled = window.isMicEnabled;
     } catch (err) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       const ctx = new AudioContext();
       const dest = ctx.createMediaStreamDestination();
       myLocalStream = dest.stream;
-      window.isMicEnabled = false;
+      window.isMicEnabled = false; 
       const btn = document.getElementById('btn-mic');
       if (btn) btn.classList.add('muted');
     }
     return myLocalStream;
-  }
-
-  async function sendSignal(toUid, signal) {
-    const base = getBaseUrl();
-    if (!base || !window.lastVoiceMyUid) return;
-    try {
-      const sigId = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
-      await fetch(`${base}/signals/${toUid}/${sigId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: window.lastVoiceMyUid, signal, time: Date.now() })
-      });
-    } catch (e) {}
-  }
-
-  function connectSignaling(uid) {
-    const wsBase = getWsBaseUrl();
-    if (!wsBase || !uid) return;
-    if (signalSocket) {
-      signalSocket.onclose = null;
-      signalSocket.close();
-    }
-
-    signalSocket = new WebSocket(`${wsBase}/ws/signals/${uid}`);
-
-    signalSocket.onmessage = async (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.event === "connected" || !msg.data) return;
-        let payload = msg.data;
-        if (payload && !payload.signal && typeof payload === 'object') {
-          const keys = Object.keys(payload);
-          if (keys.length > 0 && payload[keys[keys.length - 1]]?.signal) {
-            payload = payload[keys[keys.length - 1]];
-          }
-        }
-        if (!payload || !payload.from || !payload.signal || payload.from === window.lastVoiceMyUid) return;
-        await handleIncomingSignal(payload.from, payload.signal);
-      } catch (e) {}
-    };
-
-    signalSocket.onclose = () => {
-      if (window.lastVoiceMyUid) {
-        signalReconnectTimer = setTimeout(() => connectSignaling(window.lastVoiceMyUid), 2000);
-      }
-    };
-
-    signalSocket.onerror = () => {
-      if (signalSocket) signalSocket.close();
-    };
-  }
-
-  function getOrCreatePC(targetUid) {
-    if (peerConnections[targetUid]) return peerConnections[targetUid];
-
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" }
-      ]
-    });
-
-    if (myLocalStream) {
-      myLocalStream.getTracks().forEach(track => pc.addTrack(track, myLocalStream));
-    }
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        sendSignal(targetUid, { candidate: event.candidate });
-      }
-    };
-
-    pc.ontrack = (event) => {
-      let audio = remoteAudioElements[targetUid];
-      if (!audio) {
-        audio = document.createElement('audio');
-        audio.autoplay = true;
-        audio.playsInline = true;
-        audio.id = 'remote-audio-' + targetUid;
-        audio.muted = !!localMutedPlayers[targetUid];
-        document.body.appendChild(audio);
-        remoteAudioElements[targetUid] = audio;
-      }
-      audio.srcObject = event.streams[0];
-      audio.play().catch(() => {});
-    };
-
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-        cleanupRemote(targetUid);
-      }
-    };
-
-    peerConnections[targetUid] = pc;
-    return pc;
-  }
-
-  async function handleIncomingSignal(fromUid, signal) {
-    await ensureMicStream();
-    const pc = getOrCreatePC(fromUid);
-
-    if (signal.sdp) {
-      await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-      if (signal.sdp.type === 'offer') {
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        await sendSignal(fromUid, { sdp: pc.localDescription });
-      }
-      if (iceCandidatesQueue[fromUid]) {
-        for (const cand of iceCandidatesQueue[fromUid]) {
-          try { await pc.addIceCandidate(cand); } catch (e) {}
-        }
-        delete iceCandidatesQueue[fromUid];
-      }
-    } else if (signal.candidate) {
-      const candidate = new RTCIceCandidate(signal.candidate);
-      if (pc.remoteDescription && pc.remoteDescription.type) {
-        try { await pc.addIceCandidate(candidate); } catch (e) {}
-      } else {
-        if (!iceCandidatesQueue[fromUid]) iceCandidatesQueue[fromUid] = [];
-        iceCandidatesQueue[fromUid].push(candidate);
-      }
-    }
   }
 
   window.toggleBGM = function () {
@@ -468,10 +326,32 @@
   };
 
   window.initVoiceChat = async function (myUid) {
-    window.lastVoiceMyUid = String(myUid || '').trim();
-    if (!window.lastVoiceMyUid) return;
+    if (myPeer) return;
     await ensureMicStream();
-    connectSignaling(window.lastVoiceMyUid);
+
+    function connectPeer() {
+      myPeer = new Peer(myUid, { debug: 0 });
+
+      myPeer.on('error', err => {
+        if (err.type === 'unavailable-id') {
+          setTimeout(() => {
+            if (myPeer) myPeer.destroy();
+            connectPeer();
+          }, 2000);
+        }
+      });
+
+      myPeer.on('call', async call => {
+        await ensureMicStream();
+        try {
+          if (myLocalStream) call.answer(myLocalStream);
+          else call.answer();
+        } catch (err) {}
+        handleRemoteCall(call);
+      });
+    }
+
+    connectPeer();
   };
 
   window.toggleMic = async function () {
@@ -481,13 +361,6 @@
     myLocalStream.getAudioTracks().forEach(track => (track.enabled = window.isMicEnabled));
     const btn = document.getElementById('btn-mic');
     if (btn) btn.classList.toggle('muted', !window.isMicEnabled);
-    Object.values(peerConnections).forEach(pc => {
-      const senders = pc.getSenders();
-      const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
-      if (audioSender && myLocalStream.getAudioTracks()[0]) {
-        audioSender.replaceTrack(myLocalStream.getAudioTracks()[0]).catch(() => {});
-      }
-    });
     if (window.syncVoicePeers && window.lastVoicePlayers) {
       window.syncVoicePeers(window.lastVoicePlayers, window.lastVoiceMyUid);
     }
@@ -564,6 +437,28 @@
     window.updateVoiceMenu();
   };
 
+  function handleRemoteCall(call) {
+    const targetUid = String(call.peer || '').trim();
+    if (!targetUid) return;
+    connectedPeers[targetUid] = call;
+
+    call.on('stream', remoteStream => {
+      if (!remoteAudioElements[targetUid]) {
+        const audio = document.createElement('audio');
+        audio.autoplay = true;
+        audio.id = 'remote-audio-' + targetUid;
+        audio.muted = !!localMutedPlayers[targetUid];
+        document.body.appendChild(audio);
+        remoteAudioElements[targetUid] = audio;
+      }
+      remoteAudioElements[targetUid].srcObject = remoteStream;
+      remoteAudioElements[targetUid].play().catch(err => {});
+    });
+
+    call.on('close', () => cleanupRemote(targetUid));
+    call.on('error', () => cleanupRemote(targetUid));
+  }
+
   function cleanupRemote(targetUid) {
     targetUid = String(targetUid || '').trim();
     if (!targetUid) return;
@@ -571,55 +466,41 @@
       remoteAudioElements[targetUid].remove();
       delete remoteAudioElements[targetUid];
     }
-    if (peerConnections[targetUid]) {
-      try { peerConnections[targetUid].close(); } catch (e) {}
-      delete peerConnections[targetUid];
+    if (connectedPeers[targetUid]) {
+      try { connectedPeers[targetUid].close(); } catch (err) {}
+      delete connectedPeers[targetUid];
     }
-    delete iceCandidatesQueue[targetUid];
   }
 
-  window.syncVoicePeers = async function (players, currentMyUid) {
+  window.syncVoicePeers = async function (players, myUid) {
     window.lastVoicePlayers = players;
-    window.lastVoiceMyUid = String(currentMyUid || '').trim();
-    const myId = window.lastVoiceMyUid;
-    if (!myId) return;
-
+    window.lastVoiceMyUid = myUid;
+    const myId = String(myUid || '').trim();
     const onlinePlayers = (Array.isArray(players) ? players : []).filter(p => p && getVoiceUid(p) && getVoiceUid(p) !== myId);
     const activeUids = new Set(onlinePlayers.map(getVoiceUid));
 
-    Object.keys(peerConnections).forEach(uid => {
+    Object.keys(connectedPeers).forEach(uid => {
       if (!activeUids.has(uid)) cleanupRemote(uid);
     });
 
-    await ensureMicStream();
-
-    for (const p of onlinePlayers) {
-      const targetUid = getVoiceUid(p);
-      voicePlayerCache[targetUid] = p;
-
-      if (!peerConnections[targetUid] && myId < targetUid) {
-        const pc = getOrCreatePC(targetUid);
+    onlinePlayers.forEach(p => {
+      const uid = getVoiceUid(p);
+      voicePlayerCache[uid] = p;
+      if (myPeer && myLocalStream && !connectedPeers[uid] && myId < uid) {
         try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          await sendSignal(targetUid, { sdp: pc.localDescription });
+          const call = myPeer.call(uid, myLocalStream);
+          if (call) handleRemoteCall(call);
         } catch (err) {}
       }
-    }
+    });
 
     window.updateVoiceMenu();
   };
 
   window.closeVoiceChat = function () {
-    Object.keys(peerConnections).forEach(cleanupRemote);
-    if (signalReconnectTimer) {
-      clearTimeout(signalReconnectTimer);
-      signalReconnectTimer = null;
-    }
-    if (signalSocket) {
-      signalSocket.onclose = null;
-      try { signalSocket.close(); } catch (e) {}
-      signalSocket = null;
+    Object.keys(connectedPeers).forEach(cleanupRemote);
+    if (myPeer) {
+      try { myPeer.destroy(); } catch (err) {}
     }
     if (myLocalStream) {
       myLocalStream.getTracks().forEach(track => track.stop());
@@ -629,6 +510,7 @@
       delete remoteAudioElements[uid];
     });
     Object.keys(voicePlayerCache).forEach(uid => delete voicePlayerCache[uid]);
+    myPeer = null;
     myLocalStream = null;
     window.isMicEnabled = false;
     const btn = document.getElementById('btn-mic');
