@@ -29,6 +29,11 @@ A modern, real-time multiplayer implementation of India's favorite board game, L
 * **Backend/Database:** Firebase Realtime Database (BaaS)
 * **Architecture:** Jekyll (using _includes for modular component management)
 
+## 🚀 Our Product
+
+Explore our other exciting web platform:
+* **[TalkRush – Anonymous Chat With Strangers](https://shkumaraman.github.io):** An engaging anonymous chat web platform offering 1v1 text and video chat, public group rooms with moderation features, and password-protected private spaces.
+
 ## 📧 Contact Developer
 
 For any queries, feedback, or collaboration, feel free to reach out:
