@@ -97,7 +97,7 @@
       <button class="tab-btn" id="tab-join-btn" onclick="switchTab('join')">Join Room</button>
     </div>
     <div class="tab-panel active" id="tab-create">
-      <div><label>Your Name</label><input type="text" id="create-name" placeholder="Enter your name" maxlength="16"></div>
+      <div><label>Your Name</label><input type="text" id="create-name" placeholder="Enter your name" maxlength="24"></div>
       <div>
         <label>Game Mode</label>
         <div class="mode-grid">
@@ -116,7 +116,7 @@
       <button class="action-btn" id="create-btn" onclick="createRoom()">Create Room</button>
     </div>
     <div class="tab-panel" id="tab-join">
-      <div><label>Your Name</label><input type="text" id="join-name" placeholder="Enter your name" maxlength="16"></div>
+      <div><label>Your Name</label><input type="text" id="join-name" placeholder="Enter your name" maxlength="24"></div>
       <div><label>Room Code</label><input type="text" id="join-code" placeholder="e.g. AB12" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-family:'Courier New',monospace;"></div>
       <div>
         <label>Available Colors</label>
@@ -158,202 +158,205 @@
 </div>
 
 <script>
-  window.selectedMode='1v1';
-  window.selectedColor='red';
-  window.selectedJoinColor='';
-  window.lastJoinAvailableColors=[];
-  window.lastJoinRoomMode='';
-  const lobbyColors=['red','green','blue','yellow'];
-  const lobbyColorNames={red:'Red',green:'Green',blue:'Blue',yellow:'Yellow'};
-  const lobbyTeams=[
-    {id:'team-one',name:'Team 1',colors:['red','yellow']},
-    {id:'team-two',name:'Team 2',colors:['green','blue']}
-  ];
-  const lobbyRgbColors={
-    'rgb(198, 40, 40)':'red',
-    'rgb(46, 125, 50)':'green',
-    'rgb(21, 101, 192)':'blue',
-    'rgb(249, 168, 37)':'yellow'
-  };
-  let waitingLayoutBusy=false;
+  window.selectedMode = '1v1';
+  window.selectedColor = 'red';
+  window.selectedJoinColor = '';
+  window.lastJoinAvailableColors = [];
+  window.lastJoinRoomMode = '';
 
-  function normalizeLobbyMode(mode){
-    const value=String(mode||'').toLowerCase().replace(/\s+/g,'');
-    if(value==='2v2'||value==='2vs2'||value==='2x2')return'2v2';
-    if(value==='1v1'||value==='1vs1')return'1v1';
-    if(value==='ffa'||value==='freeforall')return'ffa';
+  const lobbyColors = ['red', 'green', 'blue', 'yellow'];
+  const lobbyColorNames = { red: 'Red', green: 'Green', blue: 'Blue', yellow: 'Yellow' };
+  const lobbyTeams = [
+    { id: 'team-one', name: 'Team 1', colors: ['red', 'yellow'] },
+    { id: 'team-two', name: 'Team 2', colors: ['green', 'blue'] }
+  ];
+  const lobbyRgbColors = {
+    'rgb(198,40,40)': 'red',
+    'rgb(46,125,50)': 'green',
+    'rgb(21,101,192)': 'blue',
+    'rgb(249,168,37)': 'yellow'
+  };
+
+  let waitingLayoutBusy = false;
+  let waitingFrameId = null;
+
+  function normalizeLobbyMode(mode) {
+    const value = String(mode || '').toLowerCase().replace(/\s+/g, '');
+    if (value === '2v2' || value === '2vs2' || value === '2x2') return '2v2';
+    if (value === '1v1' || value === '1vs1') return '1v1';
+    if (value === 'ffa' || value === 'freeforall') return 'ffa';
     return value;
   }
 
-  function getTeamForColor(color){
-    return lobbyTeams.find(team=>team.colors.includes(color))||null;
+  function getTeamForColor(color) {
+    return lobbyTeams.find(team => team.colors.includes(color)) || null;
   }
 
-  function updateTeamNote(id,mode,color){
-    const note=document.getElementById(id);
-    if(!note)return;
-    const team=normalizeLobbyMode(mode)==='2v2'?getTeamForColor(color):null;
-    if(!team){
+  function updateTeamNote(id, mode, color) {
+    const note = document.getElementById(id);
+    if (!note) return;
+    const team = normalizeLobbyMode(mode) === '2v2' ? getTeamForColor(color) : null;
+    if (!team) {
       note.classList.remove('active');
-      note.textContent='';
+      note.textContent = '';
       return;
     }
-    note.textContent=team.name+': '+team.colors.map(item=>lobbyColorNames[item]).join(' + ')+'. Choose the paired color to play with your friend.';
+    note.textContent = team.name + ': ' + team.colors.map(item => lobbyColorNames[item]).join(' + ') + '. Choose the paired color to play with your friend.';
     note.classList.add('active');
   }
 
-  window.switchTab=function(tab){
-    ['create','join'].forEach(t=>{
-      document.getElementById('tab-'+t+'-btn').classList.toggle('active',t===tab);
-      document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+  window.switchTab = function(tab) {
+    ['create', 'join'].forEach(t => {
+      document.getElementById('tab-' + t + '-btn').classList.toggle('active', t === tab);
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     });
-    if(tab==='join'&&window.refreshJoinRoomPreview)window.refreshJoinRoomPreview();
+    if (tab === 'join' && window.refreshJoinRoomPreview) window.refreshJoinRoomPreview();
   };
 
-  function createColorButton(color,availableColors,selected,clickFn){
-    const isAvailable=availableColors.includes(color);
-    const btn=document.createElement('button');
-    btn.type='button';
-    btn.className='color-btn '+color+(isAvailable&&selected===color?' selected':'');
-    btn.textContent=lobbyColorNames[color]||color;
-    if(isAvailable){
-      btn.onclick=()=>clickFn(color);
-    }else{
-      btn.style.opacity='0.35';
-      btn.style.cursor='not-allowed';
-      btn.disabled=true;
+  function createColorButton(color, availableColors, selected, clickFn) {
+    const isAvailable = availableColors.includes(color);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'color-btn ' + color + (isAvailable && selected === color ? ' selected' : '');
+    btn.textContent = lobbyColorNames[color] || color;
+    if (isAvailable) {
+      btn.onclick = () => clickFn(color);
+    } else {
+      btn.style.opacity = '0.35';
+      btn.style.cursor = 'not-allowed';
+      btn.disabled = true;
     }
     return btn;
   }
 
-  function renderColorGrid(id,availableColors,selected,clickFn,emptyText,mode){
-    const grid=document.getElementById(id);
-    if(!grid)return;
-    const safeColors=Array.isArray(availableColors)?availableColors:[];
-    const isTeamMode=normalizeLobbyMode(mode)==='2v2';
-    grid.innerHTML='';
-    grid.classList.toggle('team-color-grid',isTeamMode);
-    if(isTeamMode){
-      lobbyTeams.forEach(team=>{
-        const group=document.createElement('div');
-        group.className='color-team-group';
-        const title=document.createElement('div');
-        title.className='color-team-title';
-        title.textContent=team.name;
-        const buttons=document.createElement('div');
-        buttons.className='color-team-buttons';
-        team.colors.forEach(color=>buttons.appendChild(createColorButton(color,safeColors,selected,clickFn)));
+  function renderColorGrid(id, availableColors, selected, clickFn, emptyText, mode) {
+    const grid = document.getElementById(id);
+    if (!grid) return;
+    const safeColors = Array.isArray(availableColors) ? availableColors : [];
+    const isTeamMode = normalizeLobbyMode(mode) === '2v2';
+    grid.innerHTML = '';
+    grid.classList.toggle('team-color-grid', isTeamMode);
+    if (isTeamMode) {
+      lobbyTeams.forEach(team => {
+        const group = document.createElement('div');
+        group.className = 'color-team-group';
+        const title = document.createElement('div');
+        title.className = 'color-team-title';
+        title.textContent = team.name;
+        const buttons = document.createElement('div');
+        buttons.className = 'color-team-buttons';
+        team.colors.forEach(color => buttons.appendChild(createColorButton(color, safeColors, selected, clickFn)));
         group.appendChild(title);
         group.appendChild(buttons);
         grid.appendChild(group);
       });
-    }else{
-      lobbyColors.forEach(color=>grid.appendChild(createColorButton(color,safeColors,selected,clickFn)));
+    } else {
+      lobbyColors.forEach(color => grid.appendChild(createColorButton(color, safeColors, selected, clickFn)));
     }
-    if(safeColors.length===0){
-      const empty=document.createElement('div');
-      empty.className='error-msg';
-      empty.style.gridColumn='1 / -1';
-      empty.style.marginTop='6px';
-      empty.textContent=emptyText||'Room is full or no colors available';
+    if (safeColors.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'error-msg';
+      empty.style.gridColumn = '1 / -1';
+      empty.style.marginTop = '6px';
+      empty.textContent = emptyText || 'Room is full or no colors available';
       grid.appendChild(empty);
     }
   }
 
-  window.selectCreateColor=function(color){
-    if(!lobbyColors.includes(color))return;
-    window.selectedColor=color;
+  window.selectCreateColor = function(color) {
+    if (!lobbyColors.includes(color)) return;
+    window.selectedColor = color;
     window.renderCreateColorChoices();
   };
 
-  window.renderCreateColorChoices=function(){
-    renderColorGrid('create-color-grid',lobbyColors,window.selectedColor,window.selectCreateColor,'No color available',window.selectedMode);
-    updateTeamNote('create-team-note',window.selectedMode,window.selectedColor);
+  window.renderCreateColorChoices = function() {
+    renderColorGrid('create-color-grid', lobbyColors, window.selectedColor, window.selectCreateColor, 'No color available', window.selectedMode);
+    updateTeamNote('create-team-note', window.selectedMode, window.selectedColor);
   };
 
-  window.selectJoinColor=function(color){
-    if(!window.lastJoinAvailableColors.includes(color))return;
-    window.selectedJoinColor=color;
-    window.renderJoinAvailableColors(window.lastJoinAvailableColors,color,null,window.lastJoinRoomMode);
+  window.selectJoinColor = function(color) {
+    if (!window.lastJoinAvailableColors.includes(color)) return;
+    window.selectedJoinColor = color;
+    window.renderJoinAvailableColors(window.lastJoinAvailableColors, color, null, window.lastJoinRoomMode);
   };
 
-  window.renderJoinAvailableColors=function(colors,selected,msg,mode){
-    window.lastJoinAvailableColors=Array.isArray(colors)?colors:[];
-    if(mode)window.lastJoinRoomMode=normalizeLobbyMode(mode);
-    if(selected&&window.lastJoinAvailableColors.includes(selected))window.selectedJoinColor=selected;
-    else if(window.lastJoinAvailableColors.length)window.selectedJoinColor=window.lastJoinAvailableColors[0];
-    else window.selectedJoinColor='';
-    renderColorGrid('join-color-grid',window.lastJoinAvailableColors,window.selectedJoinColor,window.selectJoinColor,msg||'Enter room code to choose color',window.lastJoinRoomMode);
-    updateTeamNote('join-team-note',window.lastJoinRoomMode,window.selectedJoinColor);
+  window.renderJoinAvailableColors = function(colors, selected, msg, mode) {
+    window.lastJoinAvailableColors = Array.isArray(colors) ? colors : [];
+    if (mode) window.lastJoinRoomMode = normalizeLobbyMode(mode);
+    if (selected && window.lastJoinAvailableColors.includes(selected)) window.selectedJoinColor = selected;
+    else if (window.lastJoinAvailableColors.length) window.selectedJoinColor = window.lastJoinAvailableColors[0];
+    else window.selectedJoinColor = '';
+    renderColorGrid('join-color-grid', window.lastJoinAvailableColors, window.selectedJoinColor, window.selectJoinColor, msg || 'Enter room code to choose color', window.lastJoinRoomMode);
+    updateTeamNote('join-team-note', window.lastJoinRoomMode, window.selectedJoinColor);
   };
 
-  function getWaitingRoomMode(){
-    const badge=document.getElementById('display-mode');
-    const candidates=[
+  function getWaitingRoomMode() {
+    const badge = document.getElementById('display-mode');
+    const candidates = [
       window.currentRoomMode,
       window.roomMode,
-      window.activeRoom&&window.activeRoom.mode,
-      window.currentRoom&&window.currentRoom.mode,
-      badge&&badge.textContent,
+      window.activeRoom && window.activeRoom.mode,
+      window.currentRoom && window.currentRoom.mode,
+      badge && badge.textContent,
       window.selectedMode
     ];
-    for(const candidate of candidates){
-      const mode=normalizeLobbyMode(candidate);
-      if(mode==='2v2'||mode==='1v1'||mode==='ffa')return mode;
+    for (const candidate of candidates) {
+      const mode = normalizeLobbyMode(candidate);
+      if (mode === '2v2' || mode === '1v1' || mode === 'ffa') return mode;
     }
-    return'1v1';
+    return '1v1';
   }
 
-  window.renderWaitingAvailableColors=function(availableColors,selectedColor){
-    const section=document.getElementById('waiting-color-section');
-    if(!section)return;
-    const safeColors=Array.isArray(availableColors)?availableColors:[];
-    if(safeColors.length===0){
-      section.style.display='none';
+  window.renderWaitingAvailableColors = function(availableColors, selectedColor) {
+    const section = document.getElementById('waiting-color-section');
+    if (!section) return;
+    const safeColors = Array.isArray(availableColors) ? availableColors : [];
+    if (safeColors.length === 0) {
+      section.style.display = 'none';
       return;
     }
-    section.style.display='block';
-    renderColorGrid('waiting-color-grid',safeColors,selectedColor,function(color){
-      if(window.changeWaitingColor)window.changeWaitingColor(color);
-    },'No colors available',getWaitingRoomMode());
+    section.style.display = 'block';
+    renderColorGrid('waiting-color-grid', safeColors, selectedColor, function(color) {
+      if (window.changeWaitingColor) window.changeWaitingColor(color);
+    }, 'No colors available', getWaitingRoomMode());
   };
 
-  function detectSlotColor(slot){
-    const direct=String(slot.dataset.color||'').toLowerCase();
-    if(lobbyColors.includes(direct))return direct;
-    for(const color of lobbyColors){
-      if(slot.classList.contains(color))return color;
+  function detectSlotColor(slot) {
+    const direct = String(slot.dataset.color || '').toLowerCase();
+    if (lobbyColors.includes(direct)) return direct;
+    for (const color of lobbyColors) {
+      if (slot.classList.contains(color)) return color;
     }
-    const dot=slot.querySelector('.player-color-dot');
-    if(!dot)return'';
-    const dotData=String(dot.dataset.color||'').toLowerCase();
-    if(lobbyColors.includes(dotData))return dotData;
-    for(const color of lobbyColors){
-      if(dot.classList.contains(color))return color;
+    const dot = slot.querySelector('.player-color-dot');
+    if (!dot) return '';
+    const dotData = String(dot.dataset.color || '').toLowerCase();
+    if (lobbyColors.includes(dotData)) return dotData;
+    for (const color of lobbyColors) {
+      if (dot.classList.contains(color)) return color;
     }
-    const inline=String(dot.style.backgroundColor||'').trim();
-    if(lobbyRgbColors[inline])return lobbyRgbColors[inline];
-    const computed=String(getComputedStyle(dot).backgroundColor||'').trim();
-    return lobbyRgbColors[computed]||'';
+    const inline = String(dot.style.backgroundColor || '').replace(/\s+/g, '');
+    if (lobbyRgbColors[inline]) return lobbyRgbColors[inline];
+    const computed = String(getComputedStyle(dot).backgroundColor || '').replace(/\s+/g, '');
+    return lobbyRgbColors[computed] || '';
   }
 
-  function createWaitingTeamGroup(team){
-    const group=document.createElement('div');
-    group.className='team-group';
-    group.dataset.teamId=team.id;
-    const title=document.createElement('div');
-    title.className='team-group-title';
-    const dots=document.createElement('span');
-    dots.className='team-pair-dots';
-    team.colors.forEach(color=>{
-      const dot=document.createElement('span');
-      dot.className='team-pair-dot '+color;
+  function createWaitingTeamGroup(team) {
+    const group = document.createElement('div');
+    group.className = 'team-group';
+    group.dataset.teamId = team.id;
+    const title = document.createElement('div');
+    title.className = 'team-group-title';
+    const dots = document.createElement('span');
+    dots.className = 'team-pair-dots';
+    team.colors.forEach(color => {
+      const dot = document.createElement('span');
+      dot.className = 'team-pair-dot ' + color;
       dots.appendChild(dot);
     });
-    const text=document.createElement('span');
-    text.textContent=team.name+' · '+team.colors.map(color=>lobbyColorNames[color]).join(' + ');
-    const slots=document.createElement('div');
-    slots.className='team-group-slots';
+    const text = document.createElement('span');
+    text.textContent = team.name + ' · ' + team.colors.map(color => lobbyColorNames[color]).join(' + ');
+    const slots = document.createElement('div');
+    slots.className = 'team-group-slots';
     title.appendChild(dots);
     title.appendChild(text);
     group.appendChild(title);
@@ -361,99 +364,103 @@
     return group;
   }
 
-  function slotTeamId(slot,index){
-    const saved=slot.dataset.teamId;
-    if(saved&&lobbyTeams.some(team=>team.id===saved))return saved;
-    const color=detectSlotColor(slot);
-    const byColor=getTeamForColor(color);
-    if(byColor)return byColor.id;
-    return index%2===0?'team-one':'team-two';
+  function slotTeamId(slot, index) {
+    const saved = slot.dataset.teamId;
+    if (saved && lobbyTeams.some(team => team.id === saved)) return saved;
+    const color = detectSlotColor(slot);
+    const byColor = getTeamForColor(color);
+    if (byColor) return byColor.id;
+    return index % 2 === 0 ? 'team-one' : 'team-two';
   }
 
-  function restoreFlatPlayerList(list){
-    const slots=Array.from(list.querySelectorAll('.player-slot'));
-    slots.sort((a,b)=>Number(a.dataset.lobbyOrder||0)-Number(b.dataset.lobbyOrder||0));
-    waitingLayoutBusy=true;
-    list.innerHTML='';
-    slots.forEach(slot=>{
+  function restoreFlatPlayerList(list) {
+    const slots = Array.from(list.querySelectorAll('.player-slot'));
+    slots.sort((a, b) => Number(a.dataset.lobbyOrder || 0) - Number(b.dataset.lobbyOrder || 0));
+    waitingLayoutBusy = true;
+    list.innerHTML = '';
+    slots.forEach(slot => {
       delete slot.dataset.teamId;
       list.appendChild(slot);
     });
     list.classList.remove('team-view');
     delete list.dataset.teamLayout;
-    waitingLayoutBusy=false;
+    waitingLayoutBusy = false;
   }
 
-  window.applyWaitingTeamLayout=function(mode){
-    const list=document.getElementById('players-list');
-    if(!list||waitingLayoutBusy)return;
-    const activeMode=normalizeLobbyMode(mode||getWaitingRoomMode());
-    if(activeMode!=='2v2'){
-      if(list.classList.contains('team-view'))restoreFlatPlayerList(list);
+  window.applyWaitingTeamLayout = function(mode) {
+    const list = document.getElementById('players-list');
+    if (!list || waitingLayoutBusy) return;
+    const activeMode = normalizeLobbyMode(mode || getWaitingRoomMode());
+    if (activeMode !== '2v2') {
+      if (list.classList.contains('team-view')) restoreFlatPlayerList(list);
       return;
     }
-    const slots=Array.from(list.querySelectorAll('.player-slot'));
-    if(!slots.length)return;
-    const currentGroups=Array.from(list.children).filter(child=>child.classList&&child.classList.contains('team-group'));
-    const alreadyValid=list.classList.contains('team-view')&&currentGroups.length===2&&slots.every(slot=>{
-      const parent=slot.closest('.team-group');
-      return parent&&parent.dataset.teamId===slot.dataset.teamId;
+    const slots = Array.from(list.querySelectorAll('.player-slot'));
+    if (!slots.length) return;
+    const currentGroups = Array.from(list.children).filter(child => child.classList && child.classList.contains('team-group'));
+    const alreadyValid = list.classList.contains('team-view') && currentGroups.length === 2 && slots.every(slot => {
+      const parent = slot.closest('.team-group');
+      return parent && parent.dataset.teamId === slot.dataset.teamId;
     });
-    if(alreadyValid)return;
-    slots.forEach((slot,index)=>{
-      if(!slot.dataset.lobbyOrder)slot.dataset.lobbyOrder=String(index);
-      slot.dataset.teamId=slotTeamId(slot,index);
+    if (alreadyValid) return;
+    slots.forEach((slot, index) => {
+      if (!slot.dataset.lobbyOrder) slot.dataset.lobbyOrder = String(index);
+      slot.dataset.teamId = slotTeamId(slot, index);
     });
-    const groups=lobbyTeams.map(createWaitingTeamGroup);
-    waitingLayoutBusy=true;
-    list.innerHTML='';
-    groups.forEach(group=>list.appendChild(group));
-    slots.forEach(slot=>{
-      const target=list.querySelector('.team-group[data-team-id="'+slot.dataset.teamId+'"] .team-group-slots');
-      if(target)target.appendChild(slot);
+    const groups = lobbyTeams.map(createWaitingTeamGroup);
+    waitingLayoutBusy = true;
+    list.innerHTML = '';
+    groups.forEach(group => list.appendChild(group));
+    slots.forEach(slot => {
+      const target = list.querySelector('.team-group[data-team-id="' + slot.dataset.teamId + '"] .team-group-slots');
+      if (target) target.appendChild(slot);
     });
     list.classList.add('team-view');
-    list.dataset.teamLayout='2v2';
-    waitingLayoutBusy=false;
+    list.dataset.teamLayout = '2v2';
+    waitingLayoutBusy = false;
   };
 
-  window.setWaitingRoomMode=function(mode){
-    const normalized=normalizeLobbyMode(mode);
-    const badge=document.getElementById('display-mode');
-    window.currentRoomMode=normalized;
-    if(badge)badge.textContent=normalized;
+  window.setWaitingRoomMode = function(mode) {
+    const normalized = normalizeLobbyMode(mode);
+    const badge = document.getElementById('display-mode');
+    window.currentRoomMode = normalized;
+    if (badge) badge.textContent = normalized;
     window.applyWaitingTeamLayout(normalized);
   };
 
-  document.querySelectorAll('.mode-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      document.querySelectorAll('.mode-btn').forEach(item=>item.classList.remove('selected'));
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(item => item.classList.remove('selected'));
       btn.classList.add('selected');
-      window.selectedMode=btn.dataset.mode;
+      window.selectedMode = btn.dataset.mode;
       window.renderCreateColorChoices();
     });
   });
 
-  window.addEventListener('DOMContentLoaded',()=>{
+  window.addEventListener('DOMContentLoaded', () => {
     window.renderCreateColorChoices();
-    const urlCode=new URLSearchParams(location.search).get('id');
-    if(urlCode){
-      const joinInput=document.getElementById('join-code');
-      if(joinInput)joinInput.value=urlCode.toUpperCase();
+    const urlCode = new URLSearchParams(location.search).get('id');
+    if (urlCode) {
+      const joinInput = document.getElementById('join-code');
+      if (joinInput) joinInput.value = urlCode.toUpperCase();
       window.switchTab('join');
     }
-    const playersList=document.getElementById('players-list');
-    const modeBadge=document.getElementById('display-mode');
-    if(playersList){
-      const playerObserver=new MutationObserver(()=>{
-        if(waitingLayoutBusy)return;
-        queueMicrotask(()=>window.applyWaitingTeamLayout());
+    const playersList = document.getElementById('players-list');
+    const modeBadge = document.getElementById('display-mode');
+    if (playersList) {
+      const playerObserver = new MutationObserver(() => {
+        if (waitingLayoutBusy) return;
+        cancelAnimationFrame(waitingFrameId);
+        waitingFrameId = requestAnimationFrame(() => window.applyWaitingTeamLayout());
       });
-      playerObserver.observe(playersList,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','data-color']});
+      playerObserver.observe(playersList, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'data-color'] });
     }
-    if(modeBadge){
-      const modeObserver=new MutationObserver(()=>window.applyWaitingTeamLayout(modeBadge.textContent));
-      modeObserver.observe(modeBadge,{childList:true,subtree:true,characterData:true});
+    if (modeBadge) {
+      const modeObserver = new MutationObserver(() => {
+        cancelAnimationFrame(waitingFrameId);
+        waitingFrameId = requestAnimationFrame(() => window.applyWaitingTeamLayout(modeBadge.textContent));
+      });
+      modeObserver.observe(modeBadge, { childList: true, subtree: true, characterData: true });
     }
     window.applyWaitingTeamLayout();
   });
