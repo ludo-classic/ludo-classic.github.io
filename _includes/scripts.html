@@ -1,2 +1,23 @@
 <!-- PeerJS -->
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+  const OriginalPeer = window.Peer;
+  const RENDER_CONFIG = {
+    host: "peerjs-i5sd.onrender.com",
+    port: 443,
+    path: "/myapp",
+    secure: true
+  };
+
+  window.Peer = class extends OriginalPeer {
+    constructor(id, options) {
+      if (typeof id === "object" && id !== null) {
+        super({ ...RENDER_CONFIG, ...id });
+      } else if (id === undefined || id === null) {
+        super({ ...RENDER_CONFIG, ...options });
+      } else {
+        super(id, { ...RENDER_CONFIG, ...options });
+      }
+    }
+  };
+</script>
